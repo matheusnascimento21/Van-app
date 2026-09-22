@@ -4,6 +4,7 @@ import HomeLanding from './components/HomeLanding';
 import HubDashboard from './components/HubDashboard';
 import CadastroPassageiro from './components/CadastroPassageiro';
 import CheckoutPagamento from './components/CheckoutPagamento';
+import AuthLogin from './components/AuthLogin';
 import RotaProtegida from './components/RotaProtegida';
 
 export default function App() {
@@ -12,10 +13,13 @@ export default function App() {
       {/* Landing Page Pública */}
       <Route path="/" element={<HomeLanding />} />
 
-      {/* Rota de Pagamento via InfinitePay */}
+      {/* Rota de Login e Cadastro de E-mail/Senha */}
+      <Route path="/login" element={<AuthLogin />} />
+
+      {/* Rota de Pagamento */}
       <Route path="/pagamento" element={<CheckoutPagamento />} />
 
-      {/* Rota Protegida: Apenas utilizadores com plano assinado conseguem aceder */}
+      {/* Rota Protegida do Dashboard (Requer Login e Assinatura) */}
       <Route 
         path="/dashboard" 
         element={
@@ -25,7 +29,7 @@ export default function App() {
         } 
       />
 
-      {/* Rota Pública para Cadastro de Passageiro via QR Code */}
+      {/* Rota Pública do Passageiro via QR Code */}
       <Route path="/cadastro/:viagemId" element={<CadastroPassageiro />} />
       <Route path="/cadastro" element={<CadastroPassageiro />} />
 

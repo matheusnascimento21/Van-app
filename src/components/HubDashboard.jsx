@@ -5,20 +5,18 @@ import {
   Users, 
   Plus, 
   Trash2, 
-  DollarSign, 
-  Bus,
-  CheckCircle2,
-  Copy,
-  Check,
-  Car,
-  Printer,
-  Menu,
-  X,
-  FileText
+  Bus, 
+  Check, 
+  Copy, 
+  Car, 
+  Printer, 
+  Menu, 
+  X, 
+  FileText 
 } from 'lucide-react';
 
 export default function HubDashboard() {
-  const [abaAtiva, setAbaAtiva] = useState('viagens'); // 'gerar-link', 'viagens', 'notas', 'veiculos', 'motoristas'
+  const [abaAtiva, setAbaAtiva] = useState('viagens');
   const [mesRelatorio, setMesRelatorio] = useState('2026-09');
   const [menuAberto, setMenuAberto] = useState(false);
   const [viagemSelecionadaNota, setViagemSelecionadaNota] = useState(null);
@@ -209,7 +207,6 @@ export default function HubDashboard() {
     window.print();
   };
 
-  // Carrega passageiros para a Nota ANTT
   const getPassageirosViagem = (viagemId) => {
     const salvos = localStorage.getItem(`passageiros_${viagemId}`);
     return salvos ? JSON.parse(salvos) : [];
@@ -243,8 +240,8 @@ export default function HubDashboard() {
 
       {menuAberto && <div onClick={() => setMenuAberto(false)} className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 md:hidden no-print" />}
 
-      {/* SIDEBAR */}
-      <aside className={`fixed md:static top-0 left-0 h-full z-50 w-72 md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 transition-transform duration-300 no-print ${menuAberto ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      {/* SIDEBAR CORRIGIDA PARA OCUPAR 100% DA ALTURA NO COMPUTADOR */}
+      <aside className={`fixed md:sticky top-0 left-0 h-screen w-72 md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 shadow-2xl md:shadow-none transition-transform duration-300 z-50 no-print ${menuAberto ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-xl text-white">
@@ -260,7 +257,7 @@ export default function HubDashboard() {
           </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1.5">
+        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           <button onClick={() => navegarPara('gerar-link')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition ${abaAtiva === 'gerar-link' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>
             <QrCode className="w-5 h-5" /> Novo Link / QR Code
           </button>
@@ -284,11 +281,9 @@ export default function HubDashboard() {
       </aside>
 
       {/* CONTEÚDO PRINCIPAL */}
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto w-full">
+      <main className="flex-1 p-4 sm:p-8 overflow-y-auto w-full min-h-screen">
         
-        {/* ========================================================= */}
-        {/* ABA: GERAR LINK / QR CODE */}
-        {/* ========================================================= */}
+        {/* GERAR LINK / QR CODE */}
         {abaAtiva === 'gerar-link' && (
           <div className="max-w-4xl mx-auto space-y-6 no-print">
             <header className="border-b border-slate-200 pb-4">
@@ -300,10 +295,10 @@ export default function HubDashboard() {
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <Plus className="w-5 h-5 text-blue-600" /> Nova Viagem
                 </h3>
-                <input type="text" required placeholder="Responsável pela Viagem" value={novaViagem.nomeResponsavel} onChange={(e) => setNovaViagem({ ...novaViagem, nomeResponsavel: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
+                <input type="text" required placeholder="Responsável pela Viagem *" value={novaViagem.nomeResponsavel} onChange={(e) => setNovaViagem({ ...novaViagem, nomeResponsavel: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="text" required placeholder="CPF Responsável" value={novaViagem.cpfResponsavel} onChange={(e) => setNovaViagem({ ...novaViagem, cpfResponsavel: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
-                  <input type="number" required placeholder="Valor (R$)" value={novaViagem.valor} onChange={(e) => setNovaViagem({ ...novaViagem, valor: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
+                  <input type="text" required placeholder="CPF Responsável *" value={novaViagem.cpfResponsavel} onChange={(e) => setNovaViagem({ ...novaViagem, cpfResponsavel: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
+                  <input type="number" required placeholder="Valor (R$) *" value={novaViagem.valor} onChange={(e) => setNovaViagem({ ...novaViagem, valor: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <select required value={novaViagem.motoristaId} onChange={(e) => setNovaViagem({ ...novaViagem, motoristaId: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm">
@@ -319,29 +314,28 @@ export default function HubDashboard() {
                   <input type="date" required value={novaViagem.dataIda} onChange={(e) => setNovaViagem({ ...novaViagem, dataIda: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
                   <input type="date" required value={novaViagem.dataVolta} onChange={(e) => setNovaViagem({ ...novaViagem, dataVolta: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
                 </div>
-                <input type="text" required placeholder="Destino / Local" value={novaViagem.local} onChange={(e) => setNovaViagem({ ...novaViagem, local: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
-                <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm">Gerar QR Code</button>
+                <input type="text" required placeholder="Destino / Local *" value={novaViagem.local} onChange={(e) => setNovaViagem({ ...novaViagem, local: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
+                <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm">Gerar Viagem e QR Code</button>
               </form>
 
               <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col items-center justify-center text-center">
                 {qrCodeGerado ? (
                   <div className="space-y-4 w-full max-w-xs">
                     <img src={qrCodeGerado.qrImageUrl} alt="QR Code" className="w-48 h-48 mx-auto" />
-                    <button onClick={() => handleCopiarLink(qrCodeGerado.url)} className="w-full bg-slate-900 text-white text-xs font-bold py-2.5 rounded-xl">
+                    <button onClick={() => handleCopiarLink(qrCodeGerado.url)} className="w-full bg-slate-900 text-white text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-2">
+                      {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                       {copiado ? 'Copiado!' : 'Copiar Link'}
                     </button>
                   </div>
                 ) : (
-                  <div className="text-slate-400 py-8">Preencha os dados ao lado para gerar o QR Code</div>
+                  <div className="text-slate-400 py-8">Nenhum QR Code gerado ainda</div>
                 )}
               </div>
             </div>
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* ABA: VIAGENS & FINANCEIRO (COM EXCLUSÃO) */}
-        {/* ========================================================= */}
+        {/* VIAGENS & FINANCEIRO */}
         {abaAtiva === 'viagens' && (
           <div className="space-y-6">
             <header className="border-b border-slate-200 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
@@ -388,7 +382,7 @@ export default function HubDashboard() {
                           <td className="p-3 text-slate-600">{v.veiculoModelo}</td>
                           <td className="p-3 text-right font-bold text-slate-900">R$ {v.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                           <td className="p-3 text-center no-print">
-                            <button onClick={() => handleExcluirViagem(v.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100" title="Excluir Viagem">
+                            <button onClick={() => handleExcluirViagem(v.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
@@ -409,34 +403,26 @@ export default function HubDashboard() {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* NOVA ABA: NOTAS / MANIFESTO OFICIAL ANTT */}
-        {/* ========================================================= */}
+        {/* NOTAS / MANIFESTO ANTT */}
         {abaAtiva === 'notas' && (
           <div className="space-y-6">
             <header className="border-b border-slate-200 pb-4 flex justify-between items-center no-print">
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Notas & Manifestos de Viagem (ANTT / DER)</h2>
-                <p className="text-xs sm:text-sm text-slate-500">Selecione a viagem concluída para gerar e imprimir a lista oficial de passageiros.</p>
               </div>
-
               {viagemSelecionadaNota && (
-                <button onClick={handleImprimir} className="bg-blue-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow-lg shadow-blue-600/20">
-                  <Printer className="w-4 h-4 inline mr-1" /> Imprimir Manifesto ANTT
+                <button onClick={handleImprimir} className="bg-blue-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm">
+                  <Printer className="w-4 h-4 inline mr-1" /> Imprimir Manifesto
                 </button>
               )}
             </header>
 
-            {/* SELETOR DE VIAGEM */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 no-print space-y-2">
               <label className="block text-xs font-bold text-slate-700">Escolha a Viagem para Emitir a Nota:</label>
               <select
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-semibold outline-none"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-semibold"
                 value={viagemSelecionadaNota ? viagemSelecionadaNota.id : ''}
-                onChange={(e) => {
-                  const v = viagens.find(item => item.id === e.target.value);
-                  setViagemSelecionadaNota(v || null);
-                }}
+                onChange={(e) => setViagemSelecionadaNota(viagens.find(v => v.id === e.target.value) || null)}
               >
                 <option value="">Selecione uma viagem...</option>
                 {viagens.map(v => (
@@ -445,91 +431,70 @@ export default function HubDashboard() {
               </select>
             </div>
 
-            {/* MANIFESTO IMPRESSO NO PADRÃO ANTT */}
             {viagemSelecionadaNota ? (
               <div id="area-print" className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-300 space-y-6">
-                
-                {/* CABEÇALHO ANTT */}
                 <div className="border-b-2 border-slate-900 pb-4 text-center space-y-1">
-                  <h1 className="text-lg font-black text-slate-900 uppercase">MANIFESTO DE PASSAGEIROS - FRETAMENTO MUNICIPAL / INTERESTADUAL</h1>
-                  <p className="text-xs font-bold text-slate-600 uppercase">Documento de Porte Obrigatório conforme Regulamentação ANTT / DER</p>
+                  <h1 className="text-lg font-black uppercase">MANIFESTO DE PASSAGEIROS - FRETAMENTO MUNICIPAL / INTERESTADUAL</h1>
+                  <p className="text-xs font-bold uppercase text-slate-600">Documento de Porte Obrigatório ANTT / DER</p>
                 </div>
 
-                {/* DADOS DA VIAGEM E FROTA */}
                 <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <div>
-                    <p><strong>CONTRATANTE / RESPONSÁVEL:</strong> {viagemSelecionadaNota.nomeResponsavel}</p>
-                    <p><strong>CPF DO CONTRATANTE:</strong> {viagemSelecionadaNota.cpfResponsavel}</p>
-                    <p><strong>ORIGEM / DESTINO:</strong> {viagemSelecionadaNota.local}</p>
+                    <p><strong>CONTRATANTE:</strong> {viagemSelecionadaNota.nomeResponsavel}</p>
+                    <p><strong>CPF CONTRATANTE:</strong> {viagemSelecionadaNota.cpfResponsavel}</p>
+                    <p><strong>DESTINO:</strong> {viagemSelecionadaNota.local}</p>
                     <p><strong>PERÍODO:</strong> {viagemSelecionadaNota.dataIda} até {viagemSelecionadaNota.dataVolta}</p>
                   </div>
                   <div>
                     <p><strong>MOTORISTA:</strong> {viagemSelecionadaNota.motoristaNome}</p>
                     <p><strong>VEÍCULO:</strong> {viagemSelecionadaNota.veiculoModelo}</p>
-                    <p><strong>TIPO DE SERVIÇO:</strong> Fretamento Turístico / Eventual</p>
                   </div>
                 </div>
 
-                {/* TABELA DE PASSAGEIROS CADASTRADOS */}
                 <div className="space-y-2">
-                  <h3 className="text-xs font-bold uppercase text-slate-700">Relação Oficial de Passageiros Cadastrados:</h3>
-                  
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse border border-slate-300">
-                      <thead>
-                        <tr className="bg-slate-100 border-b border-slate-300 text-slate-800 uppercase font-bold">
-                          <th className="p-2 border-r border-slate-300 w-12 text-center">Pol.</th>
-                          <th className="p-2 border-r border-slate-300">Nome do Passageiro</th>
-                          <th className="p-2 border-r border-slate-300">Data Nasc.</th>
-                          <th className="p-2 border-r border-slate-300">Idade</th>
-                          <th className="p-2 border-r border-slate-300">CPF</th>
-                          <th className="p-2">RG / Doc Identidade</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200">
-                        {getPassageirosViagem(viagemSelecionadaNota.id).length > 0 ? (
-                          getPassageirosViagem(viagemSelecionadaNota.id).map((p, idx) => (
-                            <tr key={p.id || idx}>
-                              <td className="p-2 border-r border-slate-300 text-center font-bold">{p.poltrona || idx + 1}</td>
-                              <td className="p-2 border-r border-slate-300 font-semibold">{p.nome}</td>
-                              <td className="p-2 border-r border-slate-300">{p.dataNascimento}</td>
-                              <td className="p-2 border-r border-slate-300">{p.idade} anos</td>
-                              <td className="p-2 border-r border-slate-300 font-mono">{p.cpf}</td>
-                              <td className="p-2 font-mono uppercase">{p.rg}</td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan="6" className="p-4 text-center text-slate-400">Nenhum passageiro realizou o auto-cadastro via QR Code para esta viagem ainda.</td>
+                  <h3 className="text-xs font-bold uppercase">Relação Oficial de Passageiros Cadastrados:</h3>
+                  <table className="w-full text-left text-xs border-collapse border border-slate-300">
+                    <thead>
+                      <tr className="bg-slate-100 border-b border-slate-300 font-bold">
+                        <th className="p-2 border-r w-12 text-center">Pol.</th>
+                        <th className="p-2 border-r">Nome do Passageiro</th>
+                        <th className="p-2 border-r">Data Nasc.</th>
+                        <th className="p-2 border-r">Idade</th>
+                        <th className="p-2 border-r">CPF</th>
+                        <th className="p-2">RG</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getPassageirosViagem(viagemSelecionadaNota.id).length > 0 ? (
+                        getPassageirosViagem(viagemSelecionadaNota.id).map((p, idx) => (
+                          <tr key={p.id || idx} className="border-b">
+                            <td className="p-2 border-r text-center font-bold">{p.poltrona || idx + 1}</td>
+                            <td className="p-2 border-r font-semibold">{p.nome}</td>
+                            <td className="p-2 border-r">{p.dataNascimento}</td>
+                            <td className="p-2 border-r">{p.idade} anos</td>
+                            <td className="p-2 border-r font-mono">{p.cpf}</td>
+                            <td className="p-2 font-mono uppercase">{p.rg}</td>
                           </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                        ))
+                      ) : (
+                        <tr><td colSpan="6" className="p-4 text-center text-slate-400">Nenhum passageiro cadastrado ainda.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
 
-                {/* ASSINATURA E IMPRESSÃO */}
                 <div className="pt-8 grid grid-cols-2 gap-8 text-center text-xs">
-                  <div>
-                    <div className="border-t border-slate-400 pt-1">Assinatura do Responsável</div>
-                  </div>
-                  <div>
-                    <div className="border-t border-slate-400 pt-1">Assinatura do Motorista</div>
-                  </div>
+                  <div className="border-t border-slate-400 pt-1">Assinatura do Responsável</div>
+                  <div className="border-t border-slate-400 pt-1">Assinatura do Motorista</div>
                 </div>
-
               </div>
             ) : (
-              <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 text-slate-400 text-sm">
-                Selecione uma viagem na caixa acima para visualizar e imprimir a nota do manifesto.
-              </div>
+              <div className="bg-white p-12 text-center rounded-2xl border text-slate-400 text-sm">Selecione uma viagem na caixa acima para ver a nota.</div>
             )}
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* ABA: VEÍCULOS */}
-        {/* ========================================================= */}
+        {/* VEÍCULOS */}
         {abaAtiva === 'veiculos' && (
           <div className="space-y-6 no-print">
             <header className="border-b border-slate-200 pb-4">
@@ -539,14 +504,14 @@ export default function HubDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <form onSubmit={handleAddVeiculo} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 h-fit">
                 <h3 className="font-bold text-slate-900 text-base">Cadastrar Veículo</h3>
-                <input type="text" required placeholder="Placa" value={novoVeiculo.placa} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, placa: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm uppercase font-mono" />
+                <input type="text" required placeholder="Placa *" value={novoVeiculo.placa} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, placa: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm uppercase font-mono" />
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="text" required placeholder="Marca" value={novoVeiculo.marca} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, marca: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                  <input type="text" required placeholder="Modelo" value={novoVeiculo.modelo} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, modelo: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
+                  <input type="text" required placeholder="Marca *" value={novoVeiculo.marca} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, marca: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
+                  <input type="text" required placeholder="Modelo *" value={novoVeiculo.modelo} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, modelo: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="number" required placeholder="Ano" value={novoVeiculo.ano} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, ano: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                  <input type="number" required placeholder="Capacidade Total" value={novoVeiculo.capacidade} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, capacidade: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
+                  <input type="number" required placeholder="Ano *" value={novoVeiculo.ano} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, ano: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
+                  <input type="number" required placeholder="Capacidade Total *" value={novoVeiculo.capacidade} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, capacidade: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
                 </div>
                 <button type="submit" className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm">Salvar Veículo</button>
               </form>
@@ -568,9 +533,7 @@ export default function HubDashboard() {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* ABA: MOTORISTAS */}
-        {/* ========================================================= */}
+        {/* MOTORISTAS */}
         {abaAtiva === 'motoristas' && (
           <div className="space-y-6 no-print">
             <header className="border-b border-slate-200 pb-4">
@@ -580,10 +543,10 @@ export default function HubDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <form onSubmit={handleAddMotorista} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 h-fit">
                 <h3 className="font-bold text-slate-900 text-base">Novo Motorista</h3>
-                <input type="text" required placeholder="Nome Completo" value={novoMotorista.nome} onChange={(e) => setNovoMotorista({ ...novoMotorista, nome: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                <input type="text" required placeholder="CPF" value={novoMotorista.cpf} onChange={(e) => setNovoMotorista({ ...novoMotorista, cpf: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                <input type="text" required placeholder="CNH" value={novoMotorista.cnh} onChange={(e) => setNovoMotorista({ ...novoMotorista, cnh: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                <input type="text" required placeholder="Endereço" value={novoMotorista.endereco} onChange={(e) => setNovoMotorista({ ...novoMotorista, endereco: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
+                <input type="text" required placeholder="Nome Completo *" value={novoMotorista.nome} onChange={(e) => setNovoMotorista({ ...novoMotorista, nome: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
+                <input type="text" required placeholder="CPF *" value={novoMotorista.cpf} onChange={(e) => setNovoMotorista({ ...novoMotorista, cpf: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
+                <input type="text" required placeholder="CNH *" value={novoMotorista.cnh} onChange={(e) => setNovoMotorista({ ...novoMotorista, cnh: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
+                <input type="text" required placeholder="Endereço *" value={novoMotorista.endereco} onChange={(e) => setNovoMotorista({ ...novoMotorista, endereco: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
                 <button type="submit" className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm">Salvar Motorista</button>
               </form>
 

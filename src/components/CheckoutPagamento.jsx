@@ -23,27 +23,19 @@ export default function CheckoutPagamento() {
   const valorPlano = plano === 'autonomo' ? '59,00' : '139,00';
 
   // Simulação de Integração com API da InfinitePay
-  const handleConfirmarPagamento = (e) => {
-    e.preventDefault();
-    setProcessando(true);
+ const handleConfirmarPagamento = (e) => {
+  e.preventDefault();
+  setProcessando(true);
 
-    setTimeout(() => {
-      // Salva o estado da assinatura como ATIVA no localStorage do navegador
-      const dadosAssinatura = {
-        status: 'ativo',
-        plano,
-        metodoPagamento: metodo,
-        dataInicio: new Date().toISOString(),
-        proximaCobranca: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-      };
-
-      localStorage.setItem('expresstour_assinatura', JSON.stringify(dadosAssinatura));
-      setProcessando(false);
-      
-      // Redireciona o utilizador diretamente para o Painel Administrativo
-      navigate('/dashboard');
-    }, 2000);
-  };
+  setTimeout(() => {
+    // Guarda o plano selecionado e redireciona para a criação do e-mail/senha
+    localStorage.setItem('expresstour_plano_pendente', plano);
+    setProcessando(false);
+    
+    // Redireciona para o formulário de Registo/Criar Conta
+    navigate('/login?modo=cadastro');
+  }, 2000);
+};
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4 font-sans">
