@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   QrCode, 
   Calendar, 
@@ -12,10 +13,26 @@ import {
   Printer, 
   Menu, 
   X, 
-  FileText 
+  FileText,
+  LogOut
 } from 'lucide-react';
 
 export default function HubDashboard() {
+  const navigate = useNavigate();
+
+  // RECUPERA O USUÁRIO LOGADO NA SESSÃO
+  const sessaoAtiva = (() => {
+    const s = localStorage.getItem('expresstour_sessao');
+    return s ? JSON.parse(s) : { email: 'matheusnascimento.mat@gmail.com', nome: 'Matheus Nascimento' };
+  })();
+
+  const userEmail = sessaoAtiva.email.toLowerCase().trim();
+
+  // CHAVES ISOLADAS POR USUÁRIO NO LOCALSTORAGE
+  const KEY_VEICULOS = `veiculos_${userEmail}`;
+  const KEY_MOTORISTAS = `motoristas_${userEmail}`;
+  const KEY_VIAGENS = `viagens_${userEmail}`;
+
   const [abaAtiva, setAbaAtiva] = useState('viagens');
   const [mesRelatorio, setMesRelatorio] = useState('2026-09');
   const [menuAberto, setMenuAberto] = useState(false);
@@ -27,88 +44,55 @@ export default function HubDashboard() {
   };
 
   // ==========================================
-  // ESTADOS DE VEÍCULOS
+  // ESTADOS ISOLADOS DE VEÍCULOS
   // ==========================================
-  const [veiculos, setVeiculos] = useState([
-    {
-      id: 1,
-      placa: 'ABC1D23',
-      marca: 'Marcopolo',
-      modelo: 'Paradiso G7 1200',
-      ano: '2021',
-      capacidade: 18,
-    },
-    {
-      id: 2,
-      placa: 'XYZ9876',
-      marca: 'Scania',
-      modelo: 'K360',
-      ano: '2020',
-      capacidade: 46,
-    }
-  ]);
+  const [veiculos, setVeiculos] = useState(() => {
+    const salvos = localStorage.getItem(KEY_VEICULOS);
+    return salvos ? JSON.parse(salvos) : [
+      { id: 1, placa: 'ABC1D23', marca: 'Marcopolo', modelo: 'Paradiso G7 1200', ano: '2021', capacidade: 18 },
+      { id: 2, placa: 'XYZ9876', marca: 'Scania', modelo: 'K360', ano: '2020', capacidade: 46 }
+    ];
+  });
 
   const [novoVeiculo, setNovoVeiculo] = useState({ placa: '', marca: '', modelo: '', ano: '', capacidade: '' });
 
   // ==========================================
-  // ESTADOS DE MOTORISTAS
+  // ESTADOS ISOLADOS DE MOTORISTAS
   // ==========================================
-  const [motoristas, setMotoristas] = useState([
-    {
-      id: 1,
-      nome: 'Carlos Eduardo Silva',
-      cpf: '123.456.789-00',
-      cnh: '09876543210',
-      endereco: 'Rua Halfeld, 500 - Juiz de Fora / MG',
-    },
-    {
-      id: 2,
-      nome: 'Roberto Alves Santos',
-      cpf: '987.654.321-11',
-      cnh: '12345678901',
-      endereco: 'Av. Rio Branco, 1200 - Juiz de Fora / MG',
-    }
-  ]);
+  const [motoristas, setMotoristas] = useState(() => {
+    const salvos = localStorage.getItem(KEY_MOTORISTAS);
+    return salvos ? JSON.parse(salvos) : [
+      { id: 1, nome: 'Carlos Eduardo Silva', cpf: '123.456.789-00', cnh: '09876543210', endereco: 'Rua Halfeld, 500 - Juiz de Fora / MG' },
+      { id: 2, nome: 'Roberto Alves Santos', cpf: '987.654.321-11', cnh: '12345678901', endereco: 'Av. Rio Branco, 1200 - Juiz de Fora / MG' }
+    ];
+  });
 
   const [novoMotorista, setNovoMotorista] = useState({ nome: '', cpf: '', cnh: '', endereco: '' });
 
   // ==========================================
-  // ESTADOS DE VIAGENS
+  // ESTADOS ISOLADOS DE VIAGENS
   // ==========================================
-  const [viagens, setViagens] = useState([
-    {
-      id: 'v1',
-      nomeResponsavel: 'Matheus Bastos',
-      cpfResponsavel: '111.222.333-44',
-      valor: 4500,
-      motoristaId: 1,
-      motoristaNome: 'Carlos Eduardo Silva',
-      veiculoId: 1,
-      veiculoModelo: 'Marcopolo Paradiso G7 (ABC1D23)',
-      capacidadeTotal: 18,
-      limitePassageiros: 17,
-      dataIda: '2026-09-25',
-      dataVolta: '2026-09-27',
-      local: 'Cabo Frio - RJ',
-      status: 'agendada'
-    },
-    {
-      id: 'v2',
-      nomeResponsavel: 'Ana Paula Souza',
-      cpfResponsavel: '555.666.777-88',
-      valor: 3200,
-      motoristaId: 2,
-      motoristaNome: 'Roberto Alves Santos',
-      veiculoId: 2,
-      veiculoModelo: 'Scania K360 (XYZ9876)',
-      capacidadeTotal: 46,
-      limitePassageiros: 45,
-      dataIda: '2026-09-10',
-      dataVolta: '2026-09-12',
-      local: 'Ouro Preto - MG',
-      status: 'concluida'
-    }
-  ]);
+  const [viagens, setViagens] = useState(() => {
+    const salvos = localStorage.getItem(KEY_VIAGENS);
+    return salvos ? JSON.parse(salvos) : [
+      {
+        id: 'v1',
+        nomeResponsavel: 'Matheus Bastos',
+        cpfResponsavel: '111.222.333-44',
+        valor: 4500,
+        motoristaId: 1,
+        motoristaNome: 'Carlos Eduardo Silva',
+        veiculoId: 1,
+        veiculoModelo: 'Marcopolo Paradiso G7 (ABC1D23)',
+        capacidadeTotal: 18,
+        limitePassageiros: 17,
+        dataIda: '2026-09-25',
+        dataVolta: '2026-09-27',
+        local: 'Cabo Frio - RJ',
+        status: 'agendada'
+      }
+    ];
+  });
 
   const [novaViagem, setNovaViagem] = useState({
     nomeResponsavel: '',
@@ -124,10 +108,33 @@ export default function HubDashboard() {
   const [qrCodeGerado, setQrCodeGerado] = useState(null);
   const [copiado, setCopiado] = useState(false);
 
+  // GUARDA ALTERAÇÕES NO LOCALSTORAGE ISOLADO POR E-MAIL
+  useEffect(() => {
+    localStorage.setItem(KEY_VEICULOS, JSON.stringify(veiculos));
+  }, [veiculos, KEY_VEICULOS]);
+
+  useEffect(() => {
+    localStorage.setItem(KEY_MOTORISTAS, JSON.stringify(motoristas));
+  }, [motoristas, KEY_MOTORISTAS]);
+
+  useEffect(() => {
+    localStorage.setItem(KEY_VIAGENS, JSON.stringify(viagens));
+  }, [viagens, KEY_VIAGENS]);
+
+  // LOGOUT
+  const handleLogout = () => {
+    if (confirm('Deseja sair da sua conta?')) {
+      localStorage.removeItem('expresstour_sessao');
+      navigate('/login');
+    }
+  };
+
   // EXCLUIR VIAGEM DO FINANCEIRO
   const handleExcluirViagem = (id) => {
-    if (confirm('Tem certeza que deseja excluir esta viagem do registro financeiro?')) {
-      setViagens(viagens.filter(v => v.id !== id));
+    if (confirm('Tem certeza que deseja excluir esta viagem do seu registro?')) {
+      const atualizadas = viagens.filter(v => v.id !== id);
+      setViagens(atualizadas);
+      localStorage.setItem(KEY_VIAGENS, JSON.stringify(atualizadas));
       localStorage.removeItem(`viagem_${id}`);
       localStorage.removeItem(`passageiros_${id}`);
     }
@@ -137,12 +144,14 @@ export default function HubDashboard() {
     e.preventDefault();
     if (!novoVeiculo.placa || !novoVeiculo.marca || !novoVeiculo.modelo || !novoVeiculo.ano || !novoVeiculo.capacidade) return;
     const veiculoCriado = { id: Date.now(), placa: novoVeiculo.placa.toUpperCase(), marca: novoVeiculo.marca, modelo: novoVeiculo.modelo, ano: novoVeiculo.ano, capacidade: parseInt(novoVeiculo.capacidade) };
-    setVeiculos([veiculoCriado, ...veiculos]);
+    setVeiculos([...veiculos, veiculoCriado]);
     setNovoVeiculo({ placa: '', marca: '', modelo: '', ano: '', capacidade: '' });
   };
 
   const handleExcluirVeiculo = (id) => {
-    if (confirm('Deseja remover este veículo da frota?')) setVeiculos(veiculos.filter(v => v.id !== id));
+    if (confirm('Deseja remover este veículo da sua frota?')) {
+      setVeiculos(veiculos.filter(v => v.id !== id));
+    }
   };
 
   const handleCriarViagem = (e) => {
@@ -191,7 +200,9 @@ export default function HubDashboard() {
   };
 
   const handleExcluirMotorista = (id) => {
-    if (confirm('Tem certeza que deseja excluir este motorista?')) setMotoristas(motoristas.filter(m => m.id !== id));
+    if (confirm('Tem certeza que deseja excluir este motorista?')) {
+      setMotoristas(motoristas.filter(m => m.id !== id));
+    }
   };
 
   const handleCopiarLink = (url) => {
@@ -240,7 +251,7 @@ export default function HubDashboard() {
 
       {menuAberto && <div onClick={() => setMenuAberto(false)} className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 md:hidden no-print" />}
 
-      {/* SIDEBAR CORRIGIDA PARA OCUPAR 100% DA ALTURA NO COMPUTADOR */}
+      {/* SIDEBAR DE NAVEGAÇÃO DA CONTA */}
       <aside className={`fixed md:sticky top-0 left-0 h-screen w-72 md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 shadow-2xl md:shadow-none transition-transform duration-300 z-50 no-print ${menuAberto ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -249,7 +260,7 @@ export default function HubDashboard() {
             </div>
             <div>
               <h1 className="font-bold text-white text-base">ExpressTour</h1>
-              <p className="text-xs text-slate-400">Painel de Gestão</p>
+              <p className="text-[10px] text-blue-400 font-mono truncate max-w-[130px]">{userEmail}</p>
             </div>
           </div>
           <button onClick={() => setMenuAberto(false)} className="md:hidden text-slate-400 p-1">
@@ -278,9 +289,19 @@ export default function HubDashboard() {
             <Users className="w-5 h-5" /> Motoristas
           </button>
         </nav>
+
+        {/* BOTÃO DE LOGOUT / SAIR */}
+        <div className="p-4 border-t border-slate-800">
+          <button
+            onClick={handleLogout}
+            className="w-full bg-slate-800 hover:bg-red-600/20 hover:text-red-400 text-slate-400 p-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
+          >
+            <LogOut className="w-4 h-4" /> Sair da Conta
+          </button>
+        </div>
       </aside>
 
-      {/* CONTEÚDO PRINCIPAL */}
+      {/* CONTEÚDO PRINCIPAL DA CONTA LOGADA */}
       <main className="flex-1 p-4 sm:p-8 overflow-y-auto w-full min-h-screen">
         
         {/* GERAR LINK / QR CODE */}
@@ -389,7 +410,7 @@ export default function HubDashboard() {
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan="7" className="p-6 text-center text-slate-400">Nenhuma viagem no mês {mesRelatorio}.</td></tr>
+                      <tr><td colSpan="7" className="p-6 text-center text-slate-400">Nenhuma viagem cadastrada no mês {mesRelatorio}.</td></tr>
                     )}
                   </tbody>
                 </table>

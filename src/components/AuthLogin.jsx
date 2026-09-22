@@ -6,7 +6,6 @@ export default function AuthLogin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Modo 'login' ou 'cadastro' (se vier do pagamento, entra em 'cadastro')
   const [modo, setModo] = useState(() => searchParams.get('modo') || 'login');
 
   const [form, setForm] = useState({
@@ -19,12 +18,34 @@ export default function AuthLogin() {
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
 
-  // Lógica do Login
+  // Lógica do Login com Credencial Padrão Liberada no Código
   const handleLogin = (e) => {
     e.preventDefault();
     setErro('');
 
-    const usuarioSalvo = localStorage.getItem(`user_${form.email.toLowerCase().trim()}`);
+    const emailDigitado = form.email.toLowerCase().trim();
+    const senhaDigitada = form.senha;
+
+    // LOGIN PADRÃO LIBERADO DIRETAMENTE NO CÓDIGO
+    if (emailDigitado === 'matheusnascimento.mat@gmail.com' && senhaDigitada === '12345678') {
+      localStorage.setItem('expresstour_assinatura', JSON.stringify({
+        status: 'ativo',
+        plano: 'profissional',
+        emailUsuario: emailDigitado
+      }));
+
+      localStorage.setItem('expresstour_sessao', JSON.stringify({
+        email: emailDigitado,
+        nome: 'Matheus Nascimento',
+        plano: 'profissional'
+      }));
+
+      navigate('/dashboard');
+      return;
+    }
+
+    // Busca no localStorage para contas criadas normalmente via pagamento
+    const usuarioSalvo = localStorage.getItem(`user_${emailDigitado}`);
     
     if (!usuarioSalvo) {
       setErro('E-mail ou senha incorretos. Verifique os dados ou assine um plano.');
@@ -33,7 +54,7 @@ export default function AuthLogin() {
 
     const dados = JSON.parse(usuarioSalvo);
 
-    if (dados.senha !== form.senha) {
+    if (dados.senha !== senhaDigitada) {
       setErro('E-mail ou senha incorretos.');
       return;
     }
@@ -48,7 +69,7 @@ export default function AuthLogin() {
     navigate('/dashboard');
   };
 
-  // Lógica do Cadastro após confirmação do Pagamento
+  // Lógica do Cadastro pós-pagamento
   const handleCadastro = (e) => {
     e.preventDefault();
     setErro('');
@@ -74,7 +95,6 @@ export default function AuthLogin() {
       criadoEm: new Date().toISOString()
     };
 
-    // Guarda o utilizador e a assinatura vinculados ao e-mail
     localStorage.setItem(`user_${novoUsuario.email}`, JSON.stringify(novoUsuario));
     localStorage.setItem('expresstour_assinatura', JSON.stringify({
       status: 'ativo',
@@ -185,7 +205,7 @@ export default function AuthLogin() {
             </div>
           </form>
         ) : (
-          /* FORMULÁRIO DE CADASTRO (PÓS-PAGAMENTO) */
+          /* FORMULÁRIO DE CADASTRO */
           <form onSubmit={handleCadastro} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">Nome Completo do Gestor *</label>
