@@ -19,7 +19,7 @@ import {
 export default function HubDashboard() {
   const navigate = useNavigate();
 
-  // RECUPERA O USUÁRIO LOGADO NA SESSÃO[cite: 7]
+  // RECUPERA O UTILIZADOR LOGADO NA SESSÃO
   const sessaoAtiva = (() => {
     const s = localStorage.getItem('expresstour_sessao');
     return s ? JSON.parse(s) : { email: 'matheusnascimento.mat@gmail.com', nome: 'Matheus Nascimento' };
@@ -27,7 +27,7 @@ export default function HubDashboard() {
 
   const userEmail = sessaoAtiva.email.toLowerCase().trim();
 
-  // CHAVES ISOLADAS POR USUÁRIO NO LOCALSTORAGE[cite: 7]
+  // CHAVES ISOLADAS POR UTILIZADOR NO LOCALSTORAGE
   const KEY_VEICULOS = `veiculos_${userEmail}`;
   const KEY_MOTORISTAS = `motoristas_${userEmail}`;
   const KEY_VIAGENS = `viagens_${userEmail}`;
@@ -42,7 +42,7 @@ export default function HubDashboard() {
     setMenuAberto(false);
   };
 
-  // ESTADOS ISOLADOS DE VEÍCULOS[cite: 7]
+  // ESTADOS ISOLADOS DE VEÍCULOS
   const [veiculos, setVeiculos] = useState(() => {
     const salvos = localStorage.getItem(KEY_VEICULOS);
     return salvos ? JSON.parse(salvos) : [
@@ -53,7 +53,7 @@ export default function HubDashboard() {
 
   const [novoVeiculo, setNovoVeiculo] = useState({ placa: '', marca: '', modelo: '', ano: '', capacidade: '' });
 
-  // ESTADOS ISOLADOS DE MOTORISTAS[cite: 7]
+  // ESTADOS ISOLADOS DE MOTORISTAS
   const [motoristas, setMotoristas] = useState(() => {
     const salvos = localStorage.getItem(KEY_MOTORISTAS);
     return salvos ? JSON.parse(salvos) : [
@@ -64,7 +64,7 @@ export default function HubDashboard() {
 
   const [novoMotorista, setNovoMotorista] = useState({ nome: '', cpf: '', cnh: '', endereco: '' });
 
-  // ESTADOS ISOLADOS DE VIAGENS[cite: 7]
+  // ESTADOS ISOLADOS DE VIAGENS
   const [viagens, setViagens] = useState(() => {
     const salvos = localStorage.getItem(KEY_VIAGENS);
     return salvos ? JSON.parse(salvos) : [
@@ -121,7 +121,7 @@ export default function HubDashboard() {
   };
 
   const handleExcluirViagem = (id) => {
-    if (confirm('Tem certeza que deseja excluir esta viagem do seu registro?')) {
+    if (confirm('Tem certeza que deseja excluir esta viagem do seu registo?')) {
       const atualizadas = viagens.filter(v => v.id !== id);
       setViagens(atualizadas);
       localStorage.setItem(KEY_VIAGENS, JSON.stringify(atualizadas));
@@ -226,14 +226,21 @@ export default function HubDashboard() {
         }
       `}</style>
 
-      {/* BARRA SUPERIOR MOBILE COM A NOVA LOGO */}
+      {/* BARRA SUPERIOR MOBILE COM A LOGO VETORIAL NATIVA */}
       <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-40 shadow-md no-print">
         <div className="flex items-center gap-2.5">
-          <img 
-            src="/logo.png" 
-            alt="ExpressTour" 
-            className="w-8 h-8 rounded-lg object-cover bg-slate-900" 
-          />
+          <div className="w-8 h-8 rounded-xl bg-[#0d2238] p-1 border border-slate-700 shrink-0 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" className="w-full h-full">
+              <circle cx="50" cy="45" r="32" fill="#2098b6" />
+              <path d="M30 55 V42 H35 V55 H42 V35 H50 V55 H56 V38 H63 V55 H70 V55" fill="#ffffff" />
+              <path d="M40 90 C 50 70, 70 65, 80 60 C 70 70, 55 80, 45 92 Z" fill="#f5b324" />
+              <path d="M35 92 C 45 72, 65 67, 75 62" stroke="#ffffff" strokeWidth="2" strokeDasharray="3 3" fill="none" />
+              <rect x="30" y="38" width="30" height="32" rx="6" fill="#ffffff" stroke="#0d2238" strokeWidth="2" />
+              <rect x="33" y="42" width="24" height="12" rx="3" fill="#0d2238" />
+              <circle cx="35" cy="62" r="2" fill="#f5b324" />
+              <circle cx="55" cy="62" r="2" fill="#f5b324" />
+            </svg>
+          </div>
           <span className="font-bold text-sm">ExpressTour</span>
         </div>
         <button onClick={() => setMenuAberto(!menuAberto)} className="p-2 rounded-xl bg-slate-800 text-slate-200">
@@ -243,13 +250,21 @@ export default function HubDashboard() {
 
       {menuAberto && <div onClick={() => setMenuAberto(false)} className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 md:hidden no-print" />}
 
-      {/* SIDEBAR DE NAVEGAÇÃO DA CONTA COM A NOVA LOGO */}
+      {/* SIDEBAR DE NAVEGAÇÃO COM A LOGO VETORIAL NATIVA */}
       <aside className={`fixed md:sticky top-0 left-0 h-screen w-72 md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 shadow-2xl md:shadow-none transition-transform duration-300 z-50 no-print ${menuAberto ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* LOGO FORMATADA E SEM FUNDO BRANCO SOBRANDO */}
-            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800">
-              <img src="/logo.png" alt="ExpressTour Logo" className="w-full h-full object-cover" />
+            <div className="w-10 h-10 rounded-2xl overflow-hidden bg-[#0d2238] p-1.5 shadow-lg border border-slate-700/60 shrink-0 flex items-center justify-center">
+              <svg viewBox="0 0 100 100" className="w-full h-full">
+                <circle cx="50" cy="45" r="32" fill="#2098b6" />
+                <path d="M30 55 V42 H35 V55 H42 V35 H50 V55 H56 V38 H63 V55 H70 V55" fill="#ffffff" />
+                <path d="M40 90 C 50 70, 70 65, 80 60 C 70 70, 55 80, 45 92 Z" fill="#f5b324" />
+                <path d="M35 92 C 45 72, 65 67, 75 62" stroke="#ffffff" strokeWidth="2" strokeDasharray="3 3" fill="none" />
+                <rect x="30" y="38" width="30" height="32" rx="6" fill="#ffffff" stroke="#0d2238" strokeWidth="2" />
+                <rect x="33" y="42" width="24" height="12" rx="3" fill="#0d2238" />
+                <circle cx="35" cy="62" r="2" fill="#f5b324" />
+                <circle cx="55" cy="62" r="2" fill="#f5b324" />
+              </svg>
             </div>
             <div>
               <h1 className="font-bold text-white text-base">ExpressTour</h1>
@@ -283,7 +298,7 @@ export default function HubDashboard() {
           </button>
         </nav>
 
-        {/* BOTÃO DE LOGOUT / SAIR */}
+        {/* BOTÃO DE SAIR */}
         <div className="p-4 border-t border-slate-800">
           <button
             onClick={handleLogout}
@@ -294,7 +309,7 @@ export default function HubDashboard() {
         </div>
       </aside>
 
-      {/* CONTEÚDO PRINCIPAL DA CONTA LOGADA */}
+      {/* CONTEÚDO PRINCIPAL */}
       <main className="flex-1 p-4 sm:p-8 overflow-y-auto w-full min-h-screen">
         
         {/* GERAR LINK / QR CODE */}
