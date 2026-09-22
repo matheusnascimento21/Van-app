@@ -6,7 +6,6 @@ import {
   Users, 
   Plus, 
   Trash2, 
-  Bus, 
   Check, 
   Copy, 
   Car, 
@@ -20,7 +19,7 @@ import {
 export default function HubDashboard() {
   const navigate = useNavigate();
 
-  // RECUPERA O USUÁRIO LOGADO NA SESSÃO
+  // RECUPERA O USUÁRIO LOGADO NA SESSÃO[cite: 7]
   const sessaoAtiva = (() => {
     const s = localStorage.getItem('expresstour_sessao');
     return s ? JSON.parse(s) : { email: 'matheusnascimento.mat@gmail.com', nome: 'Matheus Nascimento' };
@@ -28,7 +27,7 @@ export default function HubDashboard() {
 
   const userEmail = sessaoAtiva.email.toLowerCase().trim();
 
-  // CHAVES ISOLADAS POR USUÁRIO NO LOCALSTORAGE
+  // CHAVES ISOLADAS POR USUÁRIO NO LOCALSTORAGE[cite: 7]
   const KEY_VEICULOS = `veiculos_${userEmail}`;
   const KEY_MOTORISTAS = `motoristas_${userEmail}`;
   const KEY_VIAGENS = `viagens_${userEmail}`;
@@ -43,9 +42,7 @@ export default function HubDashboard() {
     setMenuAberto(false);
   };
 
-  // ==========================================
-  // ESTADOS ISOLADOS DE VEÍCULOS
-  // ==========================================
+  // ESTADOS ISOLADOS DE VEÍCULOS[cite: 7]
   const [veiculos, setVeiculos] = useState(() => {
     const salvos = localStorage.getItem(KEY_VEICULOS);
     return salvos ? JSON.parse(salvos) : [
@@ -56,9 +53,7 @@ export default function HubDashboard() {
 
   const [novoVeiculo, setNovoVeiculo] = useState({ placa: '', marca: '', modelo: '', ano: '', capacidade: '' });
 
-  // ==========================================
-  // ESTADOS ISOLADOS DE MOTORISTAS
-  // ==========================================
+  // ESTADOS ISOLADOS DE MOTORISTAS[cite: 7]
   const [motoristas, setMotoristas] = useState(() => {
     const salvos = localStorage.getItem(KEY_MOTORISTAS);
     return salvos ? JSON.parse(salvos) : [
@@ -69,9 +64,7 @@ export default function HubDashboard() {
 
   const [novoMotorista, setNovoMotorista] = useState({ nome: '', cpf: '', cnh: '', endereco: '' });
 
-  // ==========================================
-  // ESTADOS ISOLADOS DE VIAGENS
-  // ==========================================
+  // ESTADOS ISOLADOS DE VIAGENS[cite: 7]
   const [viagens, setViagens] = useState(() => {
     const salvos = localStorage.getItem(KEY_VIAGENS);
     return salvos ? JSON.parse(salvos) : [
@@ -108,7 +101,6 @@ export default function HubDashboard() {
   const [qrCodeGerado, setQrCodeGerado] = useState(null);
   const [copiado, setCopiado] = useState(false);
 
-  // GUARDA ALTERAÇÕES NO LOCALSTORAGE ISOLADO POR E-MAIL
   useEffect(() => {
     localStorage.setItem(KEY_VEICULOS, JSON.stringify(veiculos));
   }, [veiculos, KEY_VEICULOS]);
@@ -121,7 +113,6 @@ export default function HubDashboard() {
     localStorage.setItem(KEY_VIAGENS, JSON.stringify(viagens));
   }, [viagens, KEY_VIAGENS]);
 
-  // LOGOUT
   const handleLogout = () => {
     if (confirm('Deseja sair da sua conta?')) {
       localStorage.removeItem('expresstour_sessao');
@@ -129,7 +120,6 @@ export default function HubDashboard() {
     }
   };
 
-  // EXCLUIR VIAGEM DO FINANCEIRO
   const handleExcluirViagem = (id) => {
     if (confirm('Tem certeza que deseja excluir esta viagem do seu registro?')) {
       const atualizadas = viagens.filter(v => v.id !== id);
@@ -236,12 +226,14 @@ export default function HubDashboard() {
         }
       `}</style>
 
-      {/* BARRA SUPERIOR MOBILE */}
+      {/* BARRA SUPERIOR MOBILE COM A NOVA LOGO */}
       <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-40 shadow-md no-print">
         <div className="flex items-center gap-2.5">
-          <div className="bg-blue-600 p-1.5 rounded-lg text-white">
-            <Bus className="w-5 h-5" />
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="ExpressTour" 
+            className="w-8 h-8 rounded-lg object-cover bg-slate-900" 
+          />
           <span className="font-bold text-sm">ExpressTour</span>
         </div>
         <button onClick={() => setMenuAberto(!menuAberto)} className="p-2 rounded-xl bg-slate-800 text-slate-200">
@@ -251,12 +243,13 @@ export default function HubDashboard() {
 
       {menuAberto && <div onClick={() => setMenuAberto(false)} className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 md:hidden no-print" />}
 
-      {/* SIDEBAR DE NAVEGAÇÃO DA CONTA */}
+      {/* SIDEBAR DE NAVEGAÇÃO DA CONTA COM A NOVA LOGO */}
       <aside className={`fixed md:sticky top-0 left-0 h-screen w-72 md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 shadow-2xl md:shadow-none transition-transform duration-300 z-50 no-print ${menuAberto ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-xl text-white">
-              <Bus className="w-6 h-6" />
+            {/* LOGO FORMATADA E SEM FUNDO BRANCO SOBRANDO */}
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800">
+              <img src="/logo.png" alt="ExpressTour Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="font-bold text-white text-base">ExpressTour</h1>
