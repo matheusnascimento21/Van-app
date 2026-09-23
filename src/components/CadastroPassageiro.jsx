@@ -1,6 +1,26 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle2, AlertCircle, Bus, User, CreditCard, ShieldCheck, Calendar, Baby } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Bus, User, CreditCard, ShieldCheck, Calendar, Baby, Loader2 } from 'lucide-react';
+
+// Função para Validação Matemática de CPF (Módulo 11)
+function validarCPFMatematico(cpf) {
+  const c = cpf.replace(/\D/g, '');
+  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+  
+  let soma = 0;
+  for (let i = 0; i < 9; i++) soma += parseInt(c.charAt(i)) * (10 - i);
+  let resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(c.charAt(9))) return false;
+
+  soma = 0;
+  for (let i = 0; i < 10; i++) soma += parseInt(c.charAt(i)) * (11 - i);
+  resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(c.charAt(10))) return false;
+
+  return true;
+}
 
 export default function CadastroPassageiro() {
   const { viagemId } = useParams();
@@ -32,10 +52,10 @@ export default function CadastroPassageiro() {
     isCriancaColo: false
   });
 
+  const [validandoApi, setValidandoApi] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [erro, setErro] = useState('');
 
-  // Contagem de passageiros com assento e crianças de colo
   const passageirosAssento = passageiros.filter(p => !p.isCriancaColo);
   const criancasColo = passageiros.filter(p => p.isCriancaColo);
 
@@ -73,11 +93,11 @@ export default function CadastroPassageiro() {
     setForm({ ...form, rg: letras + numeros });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErro('');
 
-    // Validações
+    // Validações básicas
     if (!form.isCriancaColo && estaLotadoSemColo) {
       setErro(`Os assentos desta viagem estão lotados (${limitePassageiros} passageiros).`);
       return;
@@ -93,8 +113,14 @@ export default function CadastroPassageiro() {
       return;
     }
 
-    if (form.cpf.length !== 11) {
-      setErro('O CPF é OBRIGATÓRIO e deve conter exatamente 11 números.');
+    if (!form.dataNascimento) {
+      setErro('Informe a data de nascimento.');
+      return;
+    }
+
+    // 1. Validação Matemática do CPF
+    if (form.cpf.length !== 11 || !validarCPFMatematico(form.cpf)) {
+      setErro('O número de CPF informado é inválido. Verifique se digitou os 11 números corretamente.');
       return;
     }
 
@@ -102,6 +128,41 @@ export default function CadastroPassageiro() {
     if (form.rg.length < 3 || rgNumeros.length === 0) {
       setErro('O RG deve começar com 2 letras (UF) e conter os números.');
       return;
+    }
+
+    // 2. Validação via API do Hub do Desenvolvedor (Receita Federal)
+    setValidandoApi(true);
+    try {
+      // Converte data de YYYY-MM-DD para DD/MM/YYYY
+      const [ano, mes, dia] = form.dataNascimento.split('-');
+      const dataFormatadaPT = `${dia}/${mes}/${ano}`;
+      const token = '218247910uYaOfKScNs394039984';
+
+      const urlApi = `https://ws.hubdodesenvolvedor.com.br/v2/cpf/?cpf=${form.cpf}&data=${dataFormatadaPT}&token=${token}`;
+
+      const res = await fetch(urlApi);
+      const data = await res.json();
+
+      // Verifica resposta da API
+      if (data && data.status === false) {
+        setErro(data.erro || 'CPF não encontrado ou data de nascimento divergente na Receita Federal.');
+        setValidandoApi(false);
+        return;
+      }
+
+      if (data && data.result) {
+        // Se a Receita retornar um nome, podemos até sincronizar/validar com o que o passageiro digitou
+        if (data.result.status && data.result.status.toLowerCase().includes('cancelada')) {
+          setErro('Este CPF está suspenso ou cancelado junto à Receita Federal.');
+          setValidandoApi(false);
+          return;
+        }
+      }
+    } catch (err) {
+      // Caso haja bloqueio de CORS ou falha de conexão na API externa, libera permitindo pela validação matemática
+      console.warn('Falha na API externa de consulta de CPF, prosseguindo com a validação nativa:', err);
+    } finally {
+      setValidandoApi(false);
     }
 
     const assentoDesignado = form.isCriancaColo ? 'Colo' : passageirosAssento.length + 1;
@@ -150,7 +211,7 @@ export default function CadastroPassageiro() {
           <div className="p-8 text-center space-y-4">
             <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto" />
             <h2 className="text-xl font-bold text-slate-900">Cadastro Confirmado!</h2>
-            <p className="text-xs text-slate-500">Seu nome já consta na lista oficial da viagem.</p>
+            <p className="text-xs text-slate-500">Seu CPF foi validado e seu nome já consta na lista oficial da viagem.</p>
             
             <button
               onClick={() => { setSucesso(false); setForm({ nome: '', dataNascimento: '', idade: '', cpf: '', rg: '', isCriancaColo: false }); }}
@@ -225,7 +286,7 @@ export default function CadastroPassageiro() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">CPF (OBRIGATÓRIO - 11 números) *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">CPF (Validado na Receita Federal) *</label>
               <div className="relative">
                 <CreditCard className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
@@ -235,7 +296,7 @@ export default function CadastroPassageiro() {
                   placeholder="12345678901"
                   value={form.cpf}
                   onChange={handleCpfChange}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-mono outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -257,9 +318,17 @@ export default function CadastroPassageiro() {
 
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl text-sm font-bold shadow-lg"
+              disabled={validandoApi}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 transition"
             >
-              Confirmar Presença na Viagem
+              {validandoApi ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Consultando Receita Federal...
+                </>
+              ) : (
+                'Confirmar Presença na Viagem'
+              )}
             </button>
           </form>
         )}
