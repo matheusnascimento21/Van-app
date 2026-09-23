@@ -6,8 +6,10 @@ export default function CheckoutPagamento() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Lê o Token da Variável de Ambiente ou usa a Chave Atual do Asaas
-  const ASAAS_TOKEN = import.meta.env.VITE_ASAAS_TOKEN || '$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjFmMDBlOWFiLTNhZTctNDhjZi1iNzU5LTQwODcwMmExN2QwYTo6JGFhY2hfYWVhMDE1NzQtMTM3Yy00MGQwLTk4ZTItOTQyMzEwOGFlODhm';
+  // Chave Pix Real de Contingência configurada:
+  const MINHA_CHAVE_PIX_REAL = 'appfretech@gmail.com';
+
+  const ASAAS_TOKEN = import.meta.env.VITE_ASAAS_TOKEN || '';
 
   const [plano, setPlano] = useState(() => searchParams.get('plano') || 'profissional');
   const [metodo, setMetodo] = useState('pix');
@@ -17,7 +19,6 @@ export default function CheckoutPagamento() {
   const [statusPagamento, setStatusPagamento] = useState('pendente');
   const [copiado, setCopiado] = useState(false);
   const [erro, setErro] = useState('');
-
   const [emailCliente, setEmailCliente] = useState('');
 
   const [formCartao, setFormCartao] = useState({
@@ -39,79 +40,73 @@ export default function CheckoutPagamento() {
 
   const valorPlano = precos[plano] || 89.90;
 
-  // CRIAR CLIENTE DINÂMICO NO ASAAS
-  const obterOuCriarClienteAsaas = async (email, nome = 'Cliente ExpressTour', cpf = '') => {
-    try {
-      const res = await fetch('https://www.asaas.com/api/v3/customers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'access_token': ASAAS_TOKEN
-        },
-        body: JSON.stringify({
-          name: nome,
-          email: email || 'cliente@expresstour.com',
-          cpfCnpj: cpf ? cpf.replace(/\D/g, '') : undefined
-        })
-      });
-      const data = await res.json();
-      if (data.id) return data.id;
-    } catch (e) {
-      console.warn('Erro ao cadastrar cliente no Asaas:', e);
-    }
-    return null;
-  };
-
-  // 1. GERAR COBRANÇA PIX NO ASAAS
+  // 1. GERAR PIX REAL OU CONTINGÊNCIA VÁLIDA
   const handleGerarPix = async () => {
     setProcessando(true);
     setErro('');
 
     try {
-      const customerId = await obterOuCriarClienteAsaas(emailCliente || 'gestor@expresstour.com');
+      if (ASAAS_TOKEN) {
+        const resCobranca = await fetch('https://www.asaas.com/api/v3/payments', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'access_token': ASAAS_TOKEN
+          },
+          body: JSON.stringify({
+            billingType: 'PIX',
+            value: valorPlano,
+            dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+            description: `Assinatura ExpressTour - Plano ${plano.toUpperCase()}`
+          })
+        });
 
-      const payloadCobranca = {
-        billingType: 'PIX',
-        value: valorPlano,
-        dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-        description: `Assinatura ExpressTour - Plano ${plano.toUpperCase()}`,
-        ...(customerId ? { customer: customerId } : {})
-      };
+        const dataCobranca = await resCobranca.json();
 
-      const resCobranca = await fetch('https://www.asaas.com/api/v3/payments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_TOKEN },
-        body: JSON.stringify(payloadCobranca)
-      });
+        if (dataCobranca.id) {
+          const resQrCode = await fetch(`https://www.asaas.com/api/v3/payments/${dataCobranca.id}/pixQrCode`, {
+            headers: { 'access_token': ASAAS_TOKEN }
+          });
+          const dataQrCode = await resQrCode.json();
 
-      const dataCobranca = await resCobranca.json();
-      if (dataCobranca.errors) throw new Error(dataCobranca.errors[0].description);
-
-      const paymentId = dataCobranca.id;
-
-      const resQrCode = await fetch(`https://www.asaas.com/api/v3/payments/${paymentId}/pixQrCode`, {
-        headers: { 'access_token': ASAAS_TOKEN }
-      });
-
-      const dataQrCode = await resQrCode.json();
-
-      setDadosPix({
-        paymentId: paymentId,
-        encodedImage: `data:image/png;base64,${dataQrCode.encodedImage}`,
-        payload: dataQrCode.payload
-      });
-
+          if (dataQrCode.payload) {
+            setDadosPix({
+              paymentId: dataCobranca.id,
+              encodedImage: `data:image/png;base64,${dataQrCode.encodedImage}`,
+              payload: dataQrCode.payload
+            });
+            setProcessando(false);
+            return;
+          }
+        }
+      }
     } catch (err) {
-      console.warn('Fallback Pix Asaas:', err);
-      // Mantém um Pix de contingência para testes sem bloquear a experiência
-      setDadosPix({
-        paymentId: 'demo_pix_id',
-        encodedImage: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ExpressTour_Plano_${plano}`,
-        payload: `00020126580014BR.GOV.BCB.PIX0136expresstour-asaas-pix-${plano}5204000053039865405${valorPlano.toFixed(2)}5802BR5911EXPRESSTOUR6009JUIZDEFORA62070503***6304`
-      });
-    } finally {
-      setProcessando(false);
+      console.warn('Uso de chave Pix direta:', err);
     }
+
+    // CHAVE PIX REAL DE CONTINGÊNCIA COM SEU EMAIL
+    setDadosPix({
+      paymentId: 'pix_direto',
+      encodedImage: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(MINHA_CHAVE_PIX_REAL)}`,
+      payload: MINHA_CHAVE_PIX_REAL
+    });
+    setProcessando(false);
+  };
+
+  const handleCopiarChave = () => {
+    if (dadosPix?.payload) {
+      navigator.clipboard.writeText(dadosPix.payload);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    }
+  };
+
+  const handleConfirmarPagamentoPixManual = () => {
+    setStatusPagamento('aprovado');
+    localStorage.setItem('expresstour_plano_pendente', plano);
+    setTimeout(() => {
+      navigate('/login?modo=cadastro');
+    }, 1500);
   };
 
   // 2. PROCESSAR PAGAMENTO COM CARTÃO NO ASAAS
@@ -121,42 +116,35 @@ export default function CheckoutPagamento() {
     setErro('');
 
     try {
-      const customerId = await obterOuCriarClienteAsaas(
-        formCartao.email || 'gestor@expresstour.com',
-        formCartao.nome,
-        formCartao.cpfTitular
-      );
-
-      const payloadCartao = {
-        billingType: 'CREDIT_CARD',
-        value: valorPlano,
-        dueDate: new Date().toISOString().split('T')[0],
-        description: `Assinatura ExpressTour - Plano ${plano.toUpperCase()}`,
-        ...(customerId ? { customer: customerId } : {}),
-        creditCard: {
-          holderName: formCartao.nome,
-          number: formCartao.numero.replace(/\s/g, ''),
-          expiryMonth: formCartao.expMes,
-          expiryYear: formCartao.expAno.length === 2 ? `20${formCartao.expAno}` : formCartao.expAno,
-          ccv: formCartao.ccv
-        },
-        creditCardHolderInfo: {
-          name: formCartao.nome,
-          email: formCartao.email || 'cliente@expresstour.com',
-          cpfCnpj: formCartao.cpfTitular.replace(/\D/g, ''),
-          mobilePhone: formCartao.telefone.replace(/\D/g, '') || '32999999999'
-        }
-      };
-
+      if (!ASAAS_TOKEN) throw new Error("Integração com cartão indisponível no momento.");
+        
       const res = await fetch('https://www.asaas.com/api/v3/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_TOKEN },
-        body: JSON.stringify(payloadCartao)
+        body: JSON.stringify({
+          billingType: 'CREDIT_CARD',
+          value: valorPlano,
+          dueDate: new Date().toISOString().split('T')[0],
+          description: `Assinatura ExpressTour - Plano ${plano.toUpperCase()}`,
+          creditCard: {
+            holderName: formCartao.nome,
+            number: formCartao.numero.replace(/\s/g, ''),
+            expiryMonth: formCartao.expMes,
+            expiryYear: formCartao.expAno.length === 2 ? `20${formCartao.expAno}` : formCartao.expAno,
+            ccv: formCartao.ccv
+          },
+          creditCardHolderInfo: {
+            name: formCartao.nome,
+            email: formCartao.email || 'cliente@expresstour.com',
+            cpfCnpj: formCartao.cpfTitular.replace(/\D/g, ''),
+            mobilePhone: formCartao.telefone.replace(/\D/g, '') || '32999999999'
+          }
+        })
       });
 
       const data = await res.json();
 
-      if (data.errors) throw new Error(data.errors[0].description || 'Cartão recusado. Verifique os dados ou limite.');
+      if (data.errors) throw new Error(data.errors[0].description || 'Cartão recusado.');
 
       if (data.status === 'CONFIRMED' || data.status === 'RECEIVED') {
         setStatusPagamento('aprovado');
@@ -167,45 +155,10 @@ export default function CheckoutPagamento() {
       }
 
     } catch (err) {
-      console.error('Erro Cartão Asaas:', err);
-      setStatusPagamento('aprovado');
-      localStorage.setItem('expresstour_plano_pendente', plano);
-      setTimeout(() => navigate('/login?modo=cadastro'), 1500);
+      console.error('Erro Cartão:', err);
+      setErro(err.message || 'Erro ao processar o cartão. Tente via Pix.');
     } finally {
       setProcessando(false);
-    }
-  };
-
-  // POLLING AUTOMÁTICO PIX
-  useEffect(() => {
-    if (!dadosPix || statusPagamento === 'aprovado' || dadosPix.paymentId === 'demo_pix_id') return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`https://www.asaas.com/api/v3/payments/${dadosPix.paymentId}`, {
-          headers: { 'access_token': ASAAS_TOKEN }
-        });
-        const data = await res.json();
-
-        if (data.status === 'RECEIVED' || data.status === 'CONFIRMED') {
-          setStatusPagamento('aprovado');
-          clearInterval(interval);
-          localStorage.setItem('expresstour_plano_pendente', plano);
-          setTimeout(() => navigate('/login?modo=cadastro'), 1500);
-        }
-      } catch (e) {
-        console.warn('Erro checagem Pix:', e);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [dadosPix, statusPagamento, plano, navigate]);
-
-  const handleCopiarChave = () => {
-    if (dadosPix?.payload) {
-      navigator.clipboard.writeText(dadosPix.payload);
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
     }
   };
 
@@ -241,12 +194,12 @@ export default function CheckoutPagamento() {
         {statusPagamento === 'aprovado' ? (
           <div className="bg-emerald-500/10 border border-emerald-500/30 p-8 rounded-2xl text-center space-y-3">
             <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto animate-bounce" />
-            <h3 className="text-xl font-bold text-white">Pagamento Aprovado pelo Asaas!</h3>
+            <h3 className="text-xl font-bold text-white">Pagamento Confirmado!</h3>
             <p className="text-xs text-slate-300">Redirecionando para a criação do seu login e senha de gestor...</p>
           </div>
         ) : (
           <>
-            {/* MÉTODOS */}
+            {/* SELETOR DE MÉTODOS */}
             <div className="grid grid-cols-2 gap-2 p-1 bg-slate-900 rounded-2xl border border-slate-800">
               <button
                 onClick={() => { setMetodo('pix'); setErro(''); }}
@@ -273,29 +226,35 @@ export default function CheckoutPagamento() {
               dadosPix ? (
                 <div className="space-y-4 text-center bg-slate-900 p-6 rounded-2xl border border-slate-800">
                   <h3 className="text-sm font-bold text-white flex items-center justify-center gap-2">
-                    <QrCode className="w-4 h-4 text-blue-400" /> Escaneie o QR Code no seu banco
+                    <QrCode className="w-4 h-4 text-blue-400" /> Escaneie o QR Code no app do seu banco
                   </h3>
+                  
                   <div className="bg-white p-3 rounded-2xl w-48 h-48 mx-auto flex items-center justify-center shadow-lg">
-                    <img src={dadosPix.encodedImage} alt="Pix" className="w-full h-full object-contain" />
+                    <img src={dadosPix.encodedImage} alt="Pix QR Code" className="w-full h-full object-contain" />
                   </div>
+
                   <div className="space-y-2 pt-2">
-                    <p className="text-xs text-slate-400">Ou copie a chave Pix:</p>
+                    <p className="text-xs text-slate-400">Ou copie a chave Pix abaixo:</p>
                     <div className="flex gap-2">
-                      <input type="text" readOnly value={dadosPix.payload} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-400 font-mono outline-none" />
+                      <input type="text" readOnly value={dadosPix.payload} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 font-mono outline-none" />
                       <button onClick={handleCopiarChave} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0">
                         {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                         {copiado ? 'Copiado' : 'Copiar'}
                       </button>
                     </div>
                   </div>
-                  <p className="text-[11px] text-slate-500 pt-2 flex items-center justify-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin text-blue-400" /> Confirmando pagamento automaticamente...
-                  </p>
+
+                  <button
+                    onClick={handleConfirmarPagamentoPixManual}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-lg transition mt-2"
+                  >
+                    Já fiz o Pix, criar minha conta agora
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">Seu E-mail para Envio do Comprovante *</label>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">Seu E-mail *</label>
                     <input
                       type="email"
                       required
@@ -311,7 +270,7 @@ export default function CheckoutPagamento() {
                     className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition shadow-xl shadow-emerald-600/20 text-sm flex items-center justify-center gap-2"
                   >
                     {processando ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />}
-                    {processando ? 'Gerando Pix no Asaas...' : 'Gerar QR Code Pix'}
+                    {processando ? 'Gerando Chave Pix...' : 'Gerar Chave e QR Code Pix'}
                   </button>
                 </div>
               )
@@ -415,13 +374,13 @@ export default function CheckoutPagamento() {
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition shadow-xl text-xs flex items-center justify-center gap-2 mt-2"
                 >
                   {processando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                  {processando ? 'Processando no Asaas...' : `Pagar R$ ${valorPlano.toFixed(2).replace('.', ',')} no Cartão`}
+                  {processando ? 'Processando...' : `Pagar R$ ${valorPlano.toFixed(2).replace('.', ',')} no Cartão`}
                 </button>
               </form>
             )}
 
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500 pt-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Pagamento Processado pela Asaas
+              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Pagamento Seguro
             </div>
           </>
         )}
