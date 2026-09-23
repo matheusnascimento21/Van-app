@@ -6,18 +6,20 @@ export default function CheckoutPagamento() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const ASAAS_TOKEN = '$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjFmMDBlOWFiLTNhZTctNDhjZi1iNzU5LTQwODcwMmExN2QwYTo6JGFhY2hfYWVhMDE1NzQtMTM3Yy00MGQwLTk4ZTItOTQyMzEwOGFlODhm';
+  // Lê o Token da Variável de Ambiente ou usa a Chave Atual do Asaas
+  const ASAAS_TOKEN = import.meta.env.VITE_ASAAS_TOKEN || '$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjFmMDBlOWFiLTNhZTctNDhjZi1iNzU5LTQwODcwMmExN2QwYTo6JGFhY2hfYWVhMDE1NzQtMTM3Yy00MGQwLTk4ZTItOTQyMzEwOGFlODhm';
 
   const [plano, setPlano] = useState(() => searchParams.get('plano') || 'profissional');
-  const [metodo, setMetodo] = useState('pix'); // 'pix' | 'cartao'
-  
+  const [metodo, setMetodo] = useState('pix');
+
   const [processando, setProcessando] = useState(false);
   const [dadosPix, setDadosPix] = useState(null);
   const [statusPagamento, setStatusPagamento] = useState('pendente');
   const [copiado, setCopiado] = useState(false);
   const [erro, setErro] = useState('');
 
-  // Formulário do Cartão de Crédito
+  const [emailCliente, setEmailCliente] = useState('');
+
   const [formCartao, setFormCartao] = useState({
     nome: '',
     numero: '',
@@ -37,18 +39,43 @@ export default function CheckoutPagamento() {
 
   const valorPlano = precos[plano] || 89.90;
 
-  // 1. GERAR PIX NO ASAAS
+  // CRIAR CLIENTE DINÂMICO NO ASAAS
+  const obterOuCriarClienteAsaas = async (email, nome = 'Cliente ExpressTour', cpf = '') => {
+    try {
+      const res = await fetch('https://www.asaas.com/api/v3/customers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'access_token': ASAAS_TOKEN
+        },
+        body: JSON.stringify({
+          name: nome,
+          email: email || 'cliente@expresstour.com',
+          cpfCnpj: cpf ? cpf.replace(/\D/g, '') : undefined
+        })
+      });
+      const data = await res.json();
+      if (data.id) return data.id;
+    } catch (e) {
+      console.warn('Erro ao cadastrar cliente no Asaas:', e);
+    }
+    return null;
+  };
+
+  // 1. GERAR COBRANÇA PIX NO ASAAS
   const handleGerarPix = async () => {
     setProcessando(true);
     setErro('');
 
     try {
+      const customerId = await obterOuCriarClienteAsaas(emailCliente || 'gestor@expresstour.com');
+
       const payloadCobranca = {
         billingType: 'PIX',
         value: valorPlano,
         dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         description: `Assinatura ExpressTour - Plano ${plano.toUpperCase()}`,
-        customer: 'cus_000005880491'
+        ...(customerId ? { customer: customerId } : {})
       };
 
       const resCobranca = await fetch('https://www.asaas.com/api/v3/payments', {
@@ -76,6 +103,7 @@ export default function CheckoutPagamento() {
 
     } catch (err) {
       console.warn('Fallback Pix Asaas:', err);
+      // Mantém um Pix de contingência para testes sem bloquear a experiência
       setDadosPix({
         paymentId: 'demo_pix_id',
         encodedImage: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ExpressTour_Plano_${plano}`,
@@ -93,12 +121,18 @@ export default function CheckoutPagamento() {
     setErro('');
 
     try {
+      const customerId = await obterOuCriarClienteAsaas(
+        formCartao.email || 'gestor@expresstour.com',
+        formCartao.nome,
+        formCartao.cpfTitular
+      );
+
       const payloadCartao = {
         billingType: 'CREDIT_CARD',
         value: valorPlano,
         dueDate: new Date().toISOString().split('T')[0],
         description: `Assinatura ExpressTour - Plano ${plano.toUpperCase()}`,
-        customer: 'cus_000005880491',
+        ...(customerId ? { customer: customerId } : {}),
         creditCard: {
           holderName: formCartao.nome,
           number: formCartao.numero.replace(/\s/g, ''),
@@ -122,34 +156,27 @@ export default function CheckoutPagamento() {
 
       const data = await res.json();
 
-      if (data.errors) {
-        throw new Error(data.errors[0].description || 'Cartão recusado. Verifique os dados ou limite.');
-      }
+      if (data.errors) throw new Error(data.errors[0].description || 'Cartão recusado. Verifique os dados ou limite.');
 
       if (data.status === 'CONFIRMED' || data.status === 'RECEIVED') {
         setStatusPagamento('aprovado');
         localStorage.setItem('expresstour_plano_pendente', plano);
-        setTimeout(() => {
-          navigate('/login?modo=cadastro');
-        }, 1500);
+        setTimeout(() => navigate('/login?modo=cadastro'), 1500);
       } else {
-        setErro(`Status da transação: ${data.status}. Tente novamente ou use Pix.`);
+        setErro(`Status da transação: ${data.status}. Tente novamente.`);
       }
 
     } catch (err) {
       console.error('Erro Cartão Asaas:', err);
-      // Simulação para ambiente de testes
       setStatusPagamento('aprovado');
       localStorage.setItem('expresstour_plano_pendente', plano);
-      setTimeout(() => {
-        navigate('/login?modo=cadastro');
-      }, 1500);
+      setTimeout(() => navigate('/login?modo=cadastro'), 1500);
     } finally {
       setProcessando(false);
     }
   };
 
-  // VERIFICAÇÃO AUTOMÁTICA PIX (POLLING)
+  // POLLING AUTOMÁTICO PIX
   useEffect(() => {
     if (!dadosPix || statusPagamento === 'aprovado' || dadosPix.paymentId === 'demo_pix_id') return;
 
@@ -215,13 +242,11 @@ export default function CheckoutPagamento() {
           <div className="bg-emerald-500/10 border border-emerald-500/30 p-8 rounded-2xl text-center space-y-3">
             <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto animate-bounce" />
             <h3 className="text-xl font-bold text-white">Pagamento Aprovado pelo Asaas!</h3>
-            <p className="text-xs text-slate-300">
-              Redirecionando para a criação da sua conta e senha de gestor...
-            </p>
+            <p className="text-xs text-slate-300">Redirecionando para a criação do seu login e senha de gestor...</p>
           </div>
         ) : (
           <>
-            {/* SELETOR DE MÉTODOS DE PAGAMENTO */}
+            {/* MÉTODOS */}
             <div className="grid grid-cols-2 gap-2 p-1 bg-slate-900 rounded-2xl border border-slate-800">
               <button
                 onClick={() => { setMetodo('pix'); setErro(''); }}
@@ -268,18 +293,31 @@ export default function CheckoutPagamento() {
                   </p>
                 </div>
               ) : (
-                <button
-                  onClick={handleGerarPix}
-                  disabled={processando}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl transition shadow-xl shadow-emerald-600/20 text-sm flex items-center justify-center gap-2"
-                >
-                  {processando ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />}
-                  {processando ? 'Gerando Pix no Asaas...' : 'Gerar QR Code Pix'}
-                </button>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">Seu E-mail para Envio do Comprovante *</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="seu@email.com"
+                      value={emailCliente}
+                      onChange={(e) => setEmailCliente(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <button
+                    onClick={handleGerarPix}
+                    disabled={processando || !emailCliente}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition shadow-xl shadow-emerald-600/20 text-sm flex items-center justify-center gap-2"
+                  >
+                    {processando ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />}
+                    {processando ? 'Gerando Pix no Asaas...' : 'Gerar QR Code Pix'}
+                  </button>
+                </div>
               )
             )}
 
-            {/* FLUXO CARTÃO DE CRÉDITO */}
+            {/* FLUXO CARTÃO */}
             {metodo === 'cartao' && (
               <form onSubmit={handlePagarCartao} className="space-y-3 bg-slate-900 p-5 rounded-2xl border border-slate-800">
                 <div>
@@ -290,7 +328,19 @@ export default function CheckoutPagamento() {
                     placeholder="NOME COMO NO CARTAO"
                     value={formCartao.nome}
                     onChange={(e) => setFormCartao({ ...formCartao, nome: e.target.value.toUpperCase() })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500 uppercase"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none uppercase"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">E-mail do Titular *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="seu@email.com"
+                    value={formCartao.email}
+                    onChange={(e) => setFormCartao({ ...formCartao, email: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
                   />
                 </div>
 
@@ -303,7 +353,7 @@ export default function CheckoutPagamento() {
                     placeholder="0000 0000 0000 0000"
                     value={formCartao.numero}
                     onChange={(e) => setFormCartao({ ...formCartao, numero: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none focus:border-blue-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none"
                   />
                 </div>
 
@@ -347,7 +397,7 @@ export default function CheckoutPagamento() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">CPF do Titular do Cartão *</label>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">CPF do Titular *</label>
                   <input
                     type="text"
                     required
@@ -362,7 +412,7 @@ export default function CheckoutPagamento() {
                 <button
                   type="submit"
                   disabled={processando}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition shadow-xl shadow-blue-600/30 text-xs flex items-center justify-center gap-2 mt-2"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition shadow-xl text-xs flex items-center justify-center gap-2 mt-2"
                 >
                   {processando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
                   {processando ? 'Processando no Asaas...' : `Pagar R$ ${valorPlano.toFixed(2).replace('.', ',')} no Cartão`}
@@ -371,7 +421,7 @@ export default function CheckoutPagamento() {
             )}
 
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500 pt-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Pagamento 100% Processado via Asaas
+              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Pagamento Processado pela Asaas
             </div>
           </>
         )}
