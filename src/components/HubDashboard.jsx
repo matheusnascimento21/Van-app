@@ -19,7 +19,7 @@ import {
 export default function HubDashboard() {
   const navigate = useNavigate();
 
-  // RECUPERA O UTILIZADOR LOGADO NA SESSÃO
+  // RECUPERA O USUÁRIO LOGADO NA SESSÃO
   const sessaoAtiva = (() => {
     const s = localStorage.getItem('expresstour_sessao');
     return s ? JSON.parse(s) : { email: 'matheusnascimento.mat@gmail.com', nome: 'Matheus Nascimento' };
@@ -27,7 +27,7 @@ export default function HubDashboard() {
 
   const userEmail = sessaoAtiva.email.toLowerCase().trim();
 
-  // CHAVES ISOLADAS POR UTILIZADOR NO LOCALSTORAGE
+  // CHAVES ISOLADAS POR USUÁRIO NO LOCALSTORAGE
   const KEY_VEICULOS = `veiculos_${userEmail}`;
   const KEY_MOTORISTAS = `motoristas_${userEmail}`;
   const KEY_VIAGENS = `viagens_${userEmail}`;
@@ -121,7 +121,7 @@ export default function HubDashboard() {
   };
 
   const handleExcluirViagem = (id) => {
-    if (confirm('Tem certeza que deseja excluir esta viagem do seu registo?')) {
+    if (confirm('Tem certeza que deseja excluir esta viagem do seu registro?')) {
       const atualizadas = viagens.filter(v => v.id !== id);
       setViagens(atualizadas);
       localStorage.setItem(KEY_VIAGENS, JSON.stringify(atualizadas));
@@ -226,7 +226,7 @@ export default function HubDashboard() {
         }
       `}</style>
 
-      {/* BARRA SUPERIOR MOBILE COM A LOGO VETORIAL NATIVA */}
+      {/* BARRA SUPERIOR MOBILE */}
       <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-40 shadow-md no-print">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-[#0d2238] p-1 border border-slate-700 shrink-0 flex items-center justify-center">
@@ -250,7 +250,7 @@ export default function HubDashboard() {
 
       {menuAberto && <div onClick={() => setMenuAberto(false)} className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 md:hidden no-print" />}
 
-      {/* SIDEBAR DE NAVEGAÇÃO COM A LOGO VETORIAL NATIVA */}
+      {/* SIDEBAR DE NAVEGAÇÃO DA CONTA */}
       <aside className={`fixed md:sticky top-0 left-0 h-screen w-72 md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 shadow-2xl md:shadow-none transition-transform duration-300 z-50 no-print ${menuAberto ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -480,33 +480,34 @@ export default function HubDashboard() {
                   </div>
                 </div>
 
+                {/* TABELA AJUSTADA: POLTRONA | NOME COMPLETO | CPF | RG */}
                 <div className="space-y-2">
                   <h3 className="text-xs font-bold uppercase">Relação Oficial de Passageiros Cadastrados:</h3>
                   <table className="w-full text-left text-xs border-collapse border border-slate-300">
                     <thead>
                       <tr className="bg-slate-100 border-b border-slate-300 font-bold">
-                        <th className="p-2 border-r w-12 text-center">Pol.</th>
-                        <th className="p-2 border-r">Nome do Passageiro</th>
-                        <th className="p-2 border-r">Data Nasc.</th>
-                        <th className="p-2 border-r">Idade</th>
+                        <th className="p-2 border-r w-16 text-center">Pol.</th>
+                        <th className="p-2 border-r">Nome Completo</th>
                         <th className="p-2 border-r">CPF</th>
-                        <th className="p-2">RG</th>
+                        <th className="p-2">RG / Doc Identidade</th>
                       </tr>
                     </thead>
                     <tbody>
                       {getPassageirosViagem(viagemSelecionadaNota.id).length > 0 ? (
                         getPassageirosViagem(viagemSelecionadaNota.id).map((p, idx) => (
                           <tr key={p.id || idx} className="border-b">
-                            <td className="p-2 border-r text-center font-bold">{p.poltrona || idx + 1}</td>
-                            <td className="p-2 border-r font-semibold">{p.nome}</td>
-                            <td className="p-2 border-r">{p.dataNascimento}</td>
-                            <td className="p-2 border-r">{p.idade} anos</td>
+                            <td className="p-2 border-r text-center font-bold">
+                              {p.isCriancaColo ? 'COLO' : (p.poltrona || idx + 1)}
+                            </td>
+                            <td className="p-2 border-r font-semibold">
+                              {p.nome} {p.isCriancaColo && <span className="text-[10px] text-blue-600 font-normal">(Criança de Colo)</span>}
+                            </td>
                             <td className="p-2 border-r font-mono">{p.cpf}</td>
                             <td className="p-2 font-mono uppercase">{p.rg}</td>
                           </tr>
                         ))
                       ) : (
-                        <tr><td colSpan="6" className="p-4 text-center text-slate-400">Nenhum passageiro cadastrado ainda.</td></tr>
+                        <tr><td colSpan="4" className="p-4 text-center text-slate-400">Nenhum passageiro cadastrado ainda.</td></tr>
                       )}
                     </tbody>
                   </table>
