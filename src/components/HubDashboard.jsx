@@ -42,6 +42,18 @@ export default function HubDashboard() {
     setMenuAberto(false);
   };
 
+  // FUNÇÃO UTILITÁRIA PARA FORMATAR DATAS DE (AAAA-MM-DD) PARA O PADRÃO BRASILEIRO (DD/MM/AAAA)
+  const formatarDataBR = (dataString) => {
+    if (!dataString) return '-';
+    if (dataString.includes('/')) return dataString;
+    const partes = dataString.split('-');
+    if (partes.length === 3) {
+      const [ano, mes, dia] = partes;
+      return `${dia}/${mes}/${ano}`;
+    }
+    return dataString;
+  };
+
   // ESTADOS ISOLADOS DE VEÍCULOS
   const [veiculos, setVeiculos] = useState(() => {
     const salvos = localStorage.getItem(KEY_VEICULOS);
@@ -101,7 +113,7 @@ export default function HubDashboard() {
   const [qrCodeGerado, setQrCodeGerado] = useState(null);
   const [copiado, setCopiado] = useState(false);
 
-  // FUNÇÃO UTILITÁRIA PARA FORMATAR CASAS DECIMAIS AUTOMATICAMENTE NO CAMPO DE VALOR
+  // FORMATAR CASAS DECIMAIS NO CAMPO DE VALOR DA VIAGEM
   const formatarMoedaInput = (valor) => {
     const apenasNumeros = valor.replace(/\D/g, '');
     if (!apenasNumeros) return '';
@@ -168,7 +180,6 @@ export default function HubDashboard() {
     const veiculoObj = veiculos.find(v => v.id === parseInt(novaViagem.veiculoId));
     const newId = `v-${Date.now()}`;
 
-    // Converte a string formatada "1.500,00" para float
     const valorNumerico = parseFloat(novaViagem.valor.replace(/\./g, '').replace(',', '.')) || 0;
 
     const viagemCriada = {
@@ -248,19 +259,8 @@ export default function HubDashboard() {
       {/* BARRA SUPERIOR MOBILE */}
       <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-40 shadow-md no-print">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#0d2238] p-1 border border-slate-700 shrink-0 flex items-center justify-center">
-            <svg viewBox="0 0 100 100" className="w-full h-full">
-              <circle cx="50" cy="45" r="32" fill="#2098b6" />
-              <path d="M30 55 V42 H35 V55 H42 V35 H50 V55 H56 V38 H63 V55 H70 V55" fill="#ffffff" />
-              <path d="M40 90 C 50 70, 70 65, 80 60 C 70 70, 55 80, 45 92 Z" fill="#f5b324" />
-              <path d="M35 92 C 45 72, 65 67, 75 62" stroke="#ffffff" strokeWidth="2" strokeDasharray="3 3" fill="none" />
-              <rect x="30" y="38" width="30" height="32" rx="6" fill="#ffffff" stroke="#0d2238" strokeWidth="2" />
-              <rect x="33" y="42" width="24" height="12" rx="3" fill="#0d2238" />
-              <circle cx="35" cy="62" r="2" fill="#f5b324" />
-              <circle cx="55" cy="62" r="2" fill="#f5b324" />
-            </svg>
-          </div>
-          <span className="font-bold text-sm">ExpressTour</span>
+          <img src="/logo.png" alt="Fretech Logo" className="w-8 h-8 object-contain rounded-lg" />
+          <span className="font-bold text-sm">Fretech</span>
         </div>
         <button onClick={() => setMenuAberto(!menuAberto)} className="p-2 rounded-xl bg-slate-800 text-slate-200">
           {menuAberto ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -273,20 +273,9 @@ export default function HubDashboard() {
       <aside className={`fixed md:sticky top-0 left-0 h-screen w-72 md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 shadow-2xl md:shadow-none transition-transform duration-300 z-50 no-print ${menuAberto ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl overflow-hidden bg-[#0d2238] p-1.5 shadow-lg border border-slate-700/60 shrink-0 flex items-center justify-center">
-              <svg viewBox="0 0 100 100" className="w-full h-full">
-                <circle cx="50" cy="45" r="32" fill="#2098b6" />
-                <path d="M30 55 V42 H35 V55 H42 V35 H50 V55 H56 V38 H63 V55 H70 V55" fill="#ffffff" />
-                <path d="M40 90 C 50 70, 70 65, 80 60 C 70 70, 55 80, 45 92 Z" fill="#f5b324" />
-                <path d="M35 92 C 45 72, 65 67, 75 62" stroke="#ffffff" strokeWidth="2" strokeDasharray="3 3" fill="none" />
-                <rect x="30" y="38" width="30" height="32" rx="6" fill="#ffffff" stroke="#0d2238" strokeWidth="2" />
-                <rect x="33" y="42" width="24" height="12" rx="3" fill="#0d2238" />
-                <circle cx="35" cy="62" r="2" fill="#f5b324" />
-                <circle cx="55" cy="62" r="2" fill="#f5b324" />
-              </svg>
-            </div>
+            <img src="/logo.png" alt="Fretech Logo" className="w-10 h-10 object-contain rounded-xl shrink-0" />
             <div>
-              <h1 className="font-bold text-white text-base">ExpressTour</h1>
+              <h1 className="font-bold text-white text-base">Fretech</h1>
               <p className="text-[10px] text-blue-400 font-mono truncate max-w-[130px]">{userEmail}</p>
             </div>
           </div>
@@ -347,7 +336,6 @@ export default function HubDashboard() {
                 <div className="grid grid-cols-2 gap-2">
                   <input type="text" required placeholder="CPF Responsável *" value={novaViagem.cpfResponsavel} onChange={(e) => setNovaViagem({ ...novaViagem, cpfResponsavel: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
                   
-                  {/* CAMPO DE VALOR COM CASAS DECIMAIS AUTOMÁTICAS */}
                   <input 
                     type="text" 
                     required 
@@ -433,7 +421,7 @@ export default function HubDashboard() {
                       viagensDoMes.map((v) => (
                         <tr key={v.id} className="hover:bg-slate-50 transition">
                           <td className="p-3 font-bold text-slate-900">{v.local}</td>
-                          <td className="p-3 text-slate-600">{v.dataIda} até {v.dataVolta}</td>
+                          <td className="p-3 text-slate-600">{formatarDataBR(v.dataIda)} até {formatarDataBR(v.dataVolta)}</td>
                           <td className="p-3 text-slate-800 font-medium">{v.nomeResponsavel}</td>
                           <td className="p-3 text-slate-800">{v.motoristaNome}</td>
                           <td className="p-3 text-slate-600">{v.veiculoModelo}</td>
@@ -483,16 +471,21 @@ export default function HubDashboard() {
               >
                 <option value="">Selecione uma viagem...</option>
                 {viagens.map(v => (
-                  <option key={v.id} value={v.id}>{v.local} ({v.dataIda} até {v.dataVolta}) - Contratante: {v.nomeResponsavel}</option>
+                  <option key={v.id} value={v.id}>{v.local} ({formatarDataBR(v.dataIda)} até {formatarDataBR(v.dataVolta)}) - Contratante: {v.nomeResponsavel}</option>
                 ))}
               </select>
             </div>
 
             {viagemSelecionadaNota ? (
               <div id="area-print" className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-300 space-y-6">
-                <div className="border-b-2 border-slate-900 pb-4 text-center space-y-1">
-                  <h1 className="text-lg font-black uppercase">MANIFESTO DE PASSAGEIROS - FRETAMENTO MUNICIPAL / INTERESTADUAL</h1>
-                  <p className="text-xs font-bold uppercase text-slate-600">Documento de Porte Obrigatório ANTT / DER</p>
+                <div className="border-b-2 border-slate-900 pb-4 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <img src="/logo.png" alt="Fretech Logo" className="w-12 h-12 object-contain" />
+                    <div>
+                      <h1 className="text-lg font-black uppercase">FRETECH - MANIFESTO DE PASSAGEIROS</h1>
+                      <p className="text-xs font-bold uppercase text-slate-600">Documento de Porte Obrigatório ANTT / DER</p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -500,7 +493,7 @@ export default function HubDashboard() {
                     <p><strong>CONTRATANTE:</strong> {viagemSelecionadaNota.nomeResponsavel}</p>
                     <p><strong>CPF CONTRATANTE:</strong> {viagemSelecionadaNota.cpfResponsavel}</p>
                     <p><strong>DESTINO:</strong> {viagemSelecionadaNota.local}</p>
-                    <p><strong>PERÍODO:</strong> {viagemSelecionadaNota.dataIda} até {viagemSelecionadaNota.dataVolta}</p>
+                    <p><strong>PERÍODO:</strong> {formatarDataBR(viagemSelecionadaNota.dataIda)} até {formatarDataBR(viagemSelecionadaNota.dataVolta)}</p>
                   </div>
                   <div>
                     <p><strong>MOTORISTA:</strong> {viagemSelecionadaNota.motoristaNome}</p>
