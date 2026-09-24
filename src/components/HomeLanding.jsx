@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
+  Bus, 
   QrCode, 
   FileText, 
   TrendingUp, 
@@ -22,8 +23,10 @@ export default function HomeLanding() {
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Fretech" className="w-9 h-9 rounded-xl object-contain" />
-            <span className="font-bold text-white text-lg tracking-tight">Fretech</span>
+            <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-600/30">
+              <Bus className="w-5 h-5" />
+            </div>
+            <span className="font-bold text-white text-lg tracking-tight">ExpressTour</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -61,7 +64,7 @@ export default function HomeLanding() {
             >
               Testar Painel Agora <ArrowRight className="w-4 h-4" />
             </Link>
-            
+            <a
               href="#recursos"
               className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-6 py-3.5 rounded-xl transition text-sm border border-slate-700/60"
             >
@@ -118,7 +121,7 @@ export default function HomeLanding() {
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-bold text-white">Interface Real do Sistema</h2>
-            <p className="text-slate-400 text-xs">Conheça os módulos integrados do painel Fretech.</p>
+            <p className="text-slate-400 text-xs">Conheça os módulos integrados do painel ExpressTour.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -287,7 +290,7 @@ export default function HomeLanding() {
 
       {/* RODAPÉ */}
       <footer className="border-t border-slate-800/80 py-8 text-center text-xs text-slate-500">
-        <p>© {new Date().getFullYear()} Fretech. Todos os direitos reservados.</p>
+        <p>© {new Date().getFullYear()} ExpressTour. Todos os direitos reservados.</p>
       </footer>
 
     </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Lock, Mail, User, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Bus, Lock, Mail, User, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function AuthLogin() {
   const navigate = useNavigate();
@@ -125,8 +125,10 @@ export default function AuthLogin() {
           </Link>
           
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Fretech" className="w-7 h-7 rounded-lg object-contain" />
-            <span className="font-bold text-white text-sm">Fretech</span>
+            <div className="bg-blue-600 p-1.5 rounded-lg text-white">
+              <Bus className="w-4 h-4" />
+            </div>
+            <span className="font-bold text-white text-sm">ExpressTour</span>
           </div>
         </div>
 
@@ -230,3 +232,53 @@ export default function AuthLogin() {
                   placeholder="seu@email.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Criar Senha *</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="Mín. 6 letras"
+                    value={form.senha}
+                    onChange={(e) => setForm({ ...form, senha: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-2 py-2.5 text-xs text-white outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Confirmar *</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="Repita a senha"
+                    value={form.confirmarSenha}
+                    onChange={(e) => setForm({ ...form, confirmarSenha: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-2 py-2.5 text-xs text-white outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition shadow-xl shadow-emerald-600/30 text-xs"
+            >
+              Concluir Registo e Acessar Painel
+            </button>
+          </form>
+        )}
+
+      </div>
+    </div>
+  );
+}
