@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle2, AlertCircle, Bus, User, CreditCard, ShieldCheck, Calendar, Baby, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Bus, User, CreditCard, ShieldCheck, Baby, Loader2 } from 'lucide-react';
 
 // Função para Validação Matemática de CPF (Módulo 11)
 function validarCPFMatematico(cpf) {
@@ -118,22 +118,24 @@ export default function CadastroPassageiro() {
       return;
     }
 
-    // 1. Validação Matemática do CPF
+    // 1. Validação Matemática do CPF (OBRIGATÓRIO)
     if (form.cpf.length !== 11 || !validarCPFMatematico(form.cpf)) {
       setErro('O número de CPF informado é inválido. Verifique se digitou os 11 números corretamente.');
       return;
     }
 
-    const rgNumeros = form.rg.slice(2);
-    if (form.rg.length < 3 || rgNumeros.length === 0) {
-      setErro('O RG deve começar com 2 letras (UF) e conter os números.');
-      return;
+    // O RG NÃO É MAIS OBRIGATÓRIO, MAS SE DIGITADO VALIDA O FORMATO BÁSICO
+    if (form.rg.trim() !== '') {
+      const rgNumeros = form.rg.slice(2);
+      if (form.rg.length < 3 || rgNumeros.length === 0) {
+        setErro('Se for informar o RG, ele deve conter as 2 letras da UF seguidas dos números.');
+        return;
+      }
     }
 
     // 2. Validação via API do Hub do Desenvolvedor (Receita Federal)
     setValidandoApi(true);
     try {
-      // Converte data de YYYY-MM-DD para DD/MM/YYYY
       const [ano, mes, dia] = form.dataNascimento.split('-');
       const dataFormatadaPT = `${dia}/${mes}/${ano}`;
       const token = '218247910uYaOfKScNs394039984';
@@ -143,7 +145,6 @@ export default function CadastroPassageiro() {
       const res = await fetch(urlApi);
       const data = await res.json();
 
-      // Verifica resposta da API
       if (data && data.status === false) {
         setErro(data.erro || 'CPF não encontrado ou data de nascimento divergente na Receita Federal.');
         setValidandoApi(false);
@@ -151,7 +152,6 @@ export default function CadastroPassageiro() {
       }
 
       if (data && data.result) {
-        // Se a Receita retornar um nome, podemos até sincronizar/validar com o que o passageiro digitou
         if (data.result.status && data.result.status.toLowerCase().includes('cancelada')) {
           setErro('Este CPF está suspenso ou cancelado junto à Receita Federal.');
           setValidandoApi(false);
@@ -159,7 +159,6 @@ export default function CadastroPassageiro() {
         }
       }
     } catch (err) {
-      // Caso haja bloqueio de CORS ou falha de conexão na API externa, libera permitindo pela validação matemática
       console.warn('Falha na API externa de consulta de CPF, prosseguindo com a validação nativa:', err);
     } finally {
       setValidandoApi(false);
@@ -173,7 +172,7 @@ export default function CadastroPassageiro() {
       dataNascimento: form.dataNascimento,
       idade: form.idade,
       cpf: form.cpf,
-      rg: form.rg,
+      rg: form.rg || 'Não informado',
       isCriancaColo: form.isCriancaColo,
       poltrona: assentoDesignado
     };
@@ -302,13 +301,12 @@ export default function CadastroPassageiro() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">RG (2 letras e números) *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">RG <span className="text-slate-400 font-normal">(Opcional)</span></label>
               <div className="relative">
                 <ShieldCheck className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
                   type="text"
-                  required
-                  placeholder="MG12345678"
+                  placeholder="MG12345678 (Opcional)"
                   value={form.rg}
                   onChange={handleRgChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-mono uppercase outline-none"

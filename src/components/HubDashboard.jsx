@@ -101,6 +101,22 @@ export default function HubDashboard() {
   const [qrCodeGerado, setQrCodeGerado] = useState(null);
   const [copiado, setCopiado] = useState(false);
 
+  // FUNÇÃO UTILITÁRIA PARA FORMATAR CASAS DECIMAIS AUTOMATICAMENTE NO CAMPO DE VALOR
+  const formatarMoedaInput = (valor) => {
+    const apenasNumeros = valor.replace(/\D/g, '');
+    if (!apenasNumeros) return '';
+    const numero = parseFloat(apenasNumeros) / 100;
+    return numero.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  const handleValorChange = (e) => {
+    const valorFormatado = formatarMoedaInput(e.target.value);
+    setNovaViagem({ ...novaViagem, valor: valorFormatado });
+  };
+
   useEffect(() => {
     localStorage.setItem(KEY_VEICULOS, JSON.stringify(veiculos));
   }, [veiculos, KEY_VEICULOS]);
@@ -152,11 +168,14 @@ export default function HubDashboard() {
     const veiculoObj = veiculos.find(v => v.id === parseInt(novaViagem.veiculoId));
     const newId = `v-${Date.now()}`;
 
+    // Converte a string formatada "1.500,00" para float
+    const valorNumerico = parseFloat(novaViagem.valor.replace(/\./g, '').replace(',', '.')) || 0;
+
     const viagemCriada = {
       id: newId,
       nomeResponsavel: novaViagem.nomeResponsavel,
       cpfResponsavel: novaViagem.cpfResponsavel,
-      valor: parseFloat(novaViagem.valor),
+      valor: valorNumerico,
       motoristaId: parseInt(novaViagem.motoristaId),
       motoristaNome: motoristaObj ? motoristaObj.nome : 'Não informado',
       veiculoId: parseInt(novaViagem.veiculoId),
@@ -327,7 +346,16 @@ export default function HubDashboard() {
                 <input type="text" required placeholder="Responsável pela Viagem *" value={novaViagem.nomeResponsavel} onChange={(e) => setNovaViagem({ ...novaViagem, nomeResponsavel: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
                 <div className="grid grid-cols-2 gap-2">
                   <input type="text" required placeholder="CPF Responsável *" value={novaViagem.cpfResponsavel} onChange={(e) => setNovaViagem({ ...novaViagem, cpfResponsavel: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
-                  <input type="number" required placeholder="Valor (R$) *" value={novaViagem.valor} onChange={(e) => setNovaViagem({ ...novaViagem, valor: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
+                  
+                  {/* CAMPO DE VALOR COM CASAS DECIMAIS AUTOMÁTICAS */}
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Valor (R$) *" 
+                    value={novaViagem.valor} 
+                    onChange={handleValorChange} 
+                    className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm font-semibold" 
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <select required value={novaViagem.motoristaId} onChange={(e) => setNovaViagem({ ...novaViagem, motoristaId: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm">
@@ -480,7 +508,6 @@ export default function HubDashboard() {
                   </div>
                 </div>
 
-                {/* TABELA AJUSTADA: POLTRONA | NOME COMPLETO | CPF | RG */}
                 <div className="space-y-2">
                   <h3 className="text-xs font-bold uppercase">Relação Oficial de Passageiros Cadastrados:</h3>
                   <table className="w-full text-left text-xs border-collapse border border-slate-300">
@@ -503,7 +530,7 @@ export default function HubDashboard() {
                               {p.nome} {p.isCriancaColo && <span className="text-[10px] text-blue-600 font-normal">(Criança de Colo)</span>}
                             </td>
                             <td className="p-2 border-r font-mono">{p.cpf}</td>
-                            <td className="p-2 font-mono uppercase">{p.rg}</td>
+                            <td className="p-2 font-mono uppercase">{p.rg || '-'}</td>
                           </tr>
                         ))
                       ) : (
