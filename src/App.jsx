@@ -1,40 +1,32 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import HomeLanding from './components/HomeLanding';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
+// Import dos seus componentes
+import LandingPage from './components/LandingPage';
+import Login from './components/Login';
+import CheckoutPagamento from './components/CheckoutPagamento';
 import HubDashboard from './components/HubDashboard';
 import CadastroPassageiro from './components/CadastroPassageiro';
-import CheckoutPagamento from './components/CheckoutPagamento';
-import AuthLogin from './components/AuthLogin';
-import RotaProtegida from './components/RotaProtegida';
 
 export default function App() {
   return (
-    <Routes>
-      {/* Landing Page Pública */}
-      <Route path="/" element={<HomeLanding />} />
+    <BrowserRouter>
+      <Routes>
+        {/* Rota da Landing Page (Página Inicial) */}
+        <Route path="/" element={<LandingPage />} />
 
-      {/* Rota de Login e Cadastro de E-mail/Senha */}
-      <Route path="/login" element={<AuthLogin />} />
+        {/* Rota do Login e Cadastro de Usuário */}
+        <Route path="/login" element={<Login />} />
 
-      {/* Rota de Pagamento */}
-      <Route path="/pagamento" element={<CheckoutPagamento />} />
+        {/* ROTA DO CHECKOUT/PAGAMENTO (Garante que abre ao clicar no plano) */}
+        <Route path="/checkout" element={<CheckoutPagamento />} />
 
-      {/* Rota Protegida do Dashboard (Requer Login e Assinatura) */}
-      <Route 
-        path="/dashboard" 
-        element={
-          <RotaProtegida>
-            <HubDashboard />
-          </RotaProtegida>
-        } 
-      />
+        {/* Rota do Painel Principal */}
+        <Route path="/hub" element={<HubDashboard />} />
 
-      {/* Rota Pública do Passageiro via QR Code */}
-      <Route path="/cadastro/:viagemId" element={<CadastroPassageiro />} />
-      <Route path="/cadastro" element={<CadastroPassageiro />} />
-
-      {/* Redirecionamento padrão */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Rota do QR Code / Cadastro de Passageiro */}
+        <Route path="/cadastro/:viagemId" element={<CadastroPassageiro />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
