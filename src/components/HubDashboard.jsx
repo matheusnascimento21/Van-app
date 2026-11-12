@@ -1,623 +1,236 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  QrCode, 
-  Calendar, 
-  Users, 
-  Plus, 
-  Trash2, 
-  Check, 
-  Copy, 
-  Car, 
-  Printer, 
-  Menu, 
-  X, 
-  FileText,
-  LogOut
-} from 'lucide-react';
+import { Bus, Users, DollarSign, Plus, LogOut, QrCode, FileText, Calendar, Trash2 } from 'lucide-react';
+import { obterChaveIsolada, obterSessaoAtiva } from '../utils/storage';
 
 export default function HubDashboard() {
   const navigate = useNavigate();
+  const sessao = obterSessaoAtiva();
 
-  // RECUPERA O USUÁRIO LOGADO NA SESSÃO
-  const sessaoAtiva = (() => {
-    const s = localStorage.getItem('expresstour_sessao');
-    return s ? JSON.parse(s) : { email: 'matheusnascimento.mat@gmail.com', nome: 'Matheus Nascimento' };
-  })();
+  // Chaves isoladas para este usuário específico
+  const chaveViagens = obterChaveIsolada('fretech_viagens');
 
-  const userEmail = sessaoAtiva.email.toLowerCase().trim();
-
-  // CHAVES ISOLADAS POR USUÁRIO NO LOCALSTORAGE
-  const KEY_VEICULOS = `veiculos_${userEmail}`;
-  const KEY_MOTORISTAS = `motoristas_${userEmail}`;
-  const KEY_VIAGENS = `viagens_${userEmail}`;
-
-  const [abaAtiva, setAbaAtiva] = useState('viagens');
-  const [mesRelatorio, setMesRelatorio] = useState('2026-09');
-  const [menuAberto, setMenuAberto] = useState(false);
-  const [viagemSelecionadaNota, setViagemSelecionadaNota] = useState(null);
-
-  const navegarPara = (aba) => {
-    setAbaAtiva(aba);
-    setMenuAberto(false);
-  };
-
-  // FUNÇÃO UTILITÁRIA PARA FORMATAR DATAS DE (AAAA-MM-DD) PARA O PADRÃO BRASILEIRO (DD/MM/AAAA)
-  const formatarDataBR = (dataString) => {
-    if (!dataString) return '-';
-    if (dataString.includes('/')) return dataString;
-    const partes = dataString.split('-');
-    if (partes.length === 3) {
-      const [ano, mes, dia] = partes;
-      return `${dia}/${mes}/${ano}`;
-    }
-    return dataString;
-  };
-
-  // ESTADOS ISOLADOS DE VEÍCULOS
-  const [veiculos, setVeiculos] = useState(() => {
-    const salvos = localStorage.getItem(KEY_VEICULOS);
-    return salvos ? JSON.parse(salvos) : [
-      { id: 1, placa: 'ABC1D23', marca: 'Marcopolo', modelo: 'Paradiso G7 1200', ano: '2021', capacidade: 18 },
-      { id: 2, placa: 'XYZ9876', marca: 'Scania', modelo: 'K360', ano: '2020', capacidade: 46 }
-    ];
-  });
-
-  const [novoVeiculo, setNovoVeiculo] = useState({ placa: '', marca: '', modelo: '', ano: '', capacidade: '' });
-
-  // ESTADOS ISOLADOS DE MOTORISTAS
-  const [motoristas, setMotoristas] = useState(() => {
-    const salvos = localStorage.getItem(KEY_MOTORISTAS);
-    return salvos ? JSON.parse(salvos) : [
-      { id: 1, nome: 'Carlos Eduardo Silva', cpf: '123.456.789-00', cnh: '09876543210', endereco: 'Rua Halfeld, 500 - Juiz de Fora / MG' },
-      { id: 2, nome: 'Roberto Alves Santos', cpf: '987.654.321-11', cnh: '12345678901', endereco: 'Av. Rio Branco, 1200 - Juiz de Fora / MG' }
-    ];
-  });
-
-  const [novoMotorista, setNovoMotorista] = useState({ nome: '', cpf: '', cnh: '', endereco: '' });
-
-  // ESTADOS ISOLADOS DE VIAGENS
   const [viagens, setViagens] = useState(() => {
-    const salvos = localStorage.getItem(KEY_VIAGENS);
-    return salvos ? JSON.parse(salvos) : [
-      {
-        id: 'v1',
-        nomeResponsavel: 'Matheus Bastos',
-        cpfResponsavel: '111.222.333-44',
-        valor: 4500,
-        motoristaId: 1,
-        motoristaNome: 'Carlos Eduardo Silva',
-        veiculoId: 1,
-        veiculoModelo: 'Marcopolo Paradiso G7 (ABC1D23)',
-        capacidadeTotal: 18,
-        limitePassageiros: 17,
-        dataIda: '2026-09-25',
-        dataVolta: '2026-09-27',
-        local: 'Cabo Frio - RJ',
-        status: 'agendada'
-      }
+    const salvas = localStorage.getItem(chaveViagens);
+    return salvas ? JSON.parse(salvas) : [
+      { id: 1, local: 'Excursão Rio de Janeiro - RJ', dataIda: '2026-11-20', capacidade: 18, valorPassagem: 120 }
     ];
   });
 
-  const [novaViagem, setNovaViagem] = useState({
-    nomeResponsavel: '',
-    cpfResponsavel: '',
-    valor: '',
-    motoristaId: '',
-    veiculoId: '',
-    dataIda: '',
-    dataVolta: '',
-    local: ''
-  });
+  const [novaViagem, setNovaViagem] = useState({ local: '', dataIda: '', capacidade: 17, valorPassagem: 100 });
+  const [modalAberto, setModalAberto] = useState(false);
 
-  const [qrCodeGerado, setQrCodeGerado] = useState(null);
-  const [copiado, setCopiado] = useState(false);
-
-  // FORMATAR CASAS DECIMAIS NO CAMPO DE VALOR DA VIAGEM
-  const formatarMoedaInput = (valor) => {
-    const apenasNumeros = valor.replace(/\D/g, '');
-    if (!apenasNumeros) return '';
-    const numero = parseFloat(apenasNumeros) / 100;
-    return numero.toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  };
-
-  const handleValorChange = (e) => {
-    const valorFormatado = formatarMoedaInput(e.target.value);
-    setNovaViagem({ ...novaViagem, valor: valorFormatado });
-  };
-
+  // Sempre que as viagens mudarem, salva na chave isolada do usuário
   useEffect(() => {
-    localStorage.setItem(KEY_VEICULOS, JSON.stringify(veiculos));
-  }, [veiculos, KEY_VEICULOS]);
-
-  useEffect(() => {
-    localStorage.setItem(KEY_MOTORISTAS, JSON.stringify(motoristas));
-  }, [motoristas, KEY_MOTORISTAS]);
-
-  useEffect(() => {
-    localStorage.setItem(KEY_VIAGENS, JSON.stringify(viagens));
-  }, [viagens, KEY_VIAGENS]);
+    localStorage.setItem(chaveViagens, JSON.stringify(viagens));
+  }, [viagens, chaveViagens]);
 
   const handleLogout = () => {
-    if (confirm('Deseja sair da sua conta?')) {
-      localStorage.removeItem('expresstour_sessao');
-      navigate('/login');
-    }
-  };
-
-  const handleExcluirViagem = (id) => {
-    if (confirm('Tem certeza que deseja excluir esta viagem do seu registro?')) {
-      const atualizadas = viagens.filter(v => v.id !== id);
-      setViagens(atualizadas);
-      localStorage.setItem(KEY_VIAGENS, JSON.stringify(atualizadas));
-      localStorage.removeItem(`viagem_${id}`);
-      localStorage.removeItem(`passageiros_${id}`);
-    }
-  };
-
-  const handleAddVeiculo = (e) => {
-    e.preventDefault();
-    if (!novoVeiculo.placa || !novoVeiculo.marca || !novoVeiculo.modelo || !novoVeiculo.ano || !novoVeiculo.capacidade) return;
-    const veiculoCriado = { id: Date.now(), placa: novoVeiculo.placa.toUpperCase(), marca: novoVeiculo.marca, modelo: novoVeiculo.modelo, ano: novoVeiculo.ano, capacidade: parseInt(novoVeiculo.capacidade) };
-    setVeiculos([...veiculos, veiculoCriado]);
-    setNovoVeiculo({ placa: '', marca: '', modelo: '', ano: '', capacidade: '' });
-  };
-
-  const handleExcluirVeiculo = (id) => {
-    if (confirm('Deseja remover este veículo da sua frota?')) {
-      setVeiculos(veiculos.filter(v => v.id !== id));
-    }
+    localStorage.removeItem('fretech_sessao');
+    localStorage.removeItem('expresstour_sessao');
+    navigate('/login');
   };
 
   const handleCriarViagem = (e) => {
     e.preventDefault();
-    if (!novaViagem.motoristaId || !novaViagem.veiculoId) return alert('Selecione o motorista e o veículo.');
+    if (!novaViagem.local || !novaViagem.dataIda) return;
 
-    const motoristaObj = motoristas.find(m => m.id === parseInt(novaViagem.motoristaId));
-    const veiculoObj = veiculos.find(v => v.id === parseInt(novaViagem.veiculoId));
-    const newId = `v-${Date.now()}`;
-
-    const valorNumerico = parseFloat(novaViagem.valor.replace(/\./g, '').replace(',', '.')) || 0;
-
-    const viagemCriada = {
-      id: newId,
-      nomeResponsavel: novaViagem.nomeResponsavel,
-      cpfResponsavel: novaViagem.cpfResponsavel,
-      valor: valorNumerico,
-      motoristaId: parseInt(novaViagem.motoristaId),
-      motoristaNome: motoristaObj ? motoristaObj.nome : 'Não informado',
-      veiculoId: parseInt(novaViagem.veiculoId),
-      veiculoModelo: veiculoObj ? `${veiculoObj.marca} ${veiculoObj.modelo} (${veiculoObj.placa})` : 'Não informado',
-      capacidadeTotal: veiculoObj ? veiculoObj.capacidade : 0,
-      limitePassageiros: veiculoObj ? veiculoObj.capacidade - 1 : 0,
-      dataIda: novaViagem.dataIda,
-      dataVolta: novaViagem.dataVolta,
+    const viagemObj = {
+      id: Date.now(),
       local: novaViagem.local,
-      status: 'agendada'
+      dataIda: novaViagem.dataIda,
+      capacidade: Number(novaViagem.capacidade) || 17,
+      valorPassagem: Number(novaViagem.valorPassagem) || 0
     };
 
-    setViagens([viagemCriada, ...viagens]);
-    localStorage.setItem(`viagem_${newId}`, JSON.stringify(viagemCriada));
-
-    const urlCadastro = `${window.location.origin}/cadastro/${newId}`;
-    setQrCodeGerado({
-      url: urlCadastro,
-      viagem: viagemCriada,
-      qrImageUrl: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(urlCadastro)}`
-    });
-
-    setNovaViagem({ nomeResponsavel: '', cpfResponsavel: '', valor: '', motoristaId: '', veiculoId: '', dataIda: '', dataVolta: '', local: '' });
+    setViagens([viagemObj, ...viagens]);
+    setNovaViagem({ local: '', dataIda: '', capacidade: 17, valorPassagem: 100 });
+    setModalAberto(false);
   };
 
-  const handleAddMotorista = (e) => {
-    e.preventDefault();
-    if (!novoMotorista.nome || !novoMotorista.cpf) return;
-    setMotoristas([...motoristas, { id: Date.now(), ...novoMotorista }]);
-    setNovoMotorista({ nome: '', cpf: '', cnh: '', endereco: '' });
-  };
-
-  const handleExcluirMotorista = (id) => {
-    if (confirm('Tem certeza que deseja excluir este motorista?')) {
-      setMotoristas(motoristas.filter(m => m.id !== id));
+  const excluirViagem = (id) => {
+    if (window.confirm('Deseja realmente excluir esta viagem?')) {
+      const filtradas = viagens.filter(v => v.id !== id);
+      setViagens(filtradas);
     }
   };
 
-  const handleCopiarLink = (url) => {
-    navigator.clipboard.writeText(url);
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 2000);
-  };
-
-  const viagensDoMes = viagens.filter(v => v.dataIda.startsWith(mesRelatorio));
-  const valorTotalDoMes = viagensDoMes.reduce((acc, v) => acc + v.valor, 0);
-
-  const handleImprimir = () => {
-    window.print();
-  };
-
-  const getPassageirosViagem = (viagemId) => {
-    const salvos = localStorage.getItem(`passageiros_${viagemId}`);
-    return salvos ? JSON.parse(salvos) : [];
-  };
-
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-slate-100 font-sans text-slate-800">
-      
-      {/* ESTILOS DE IMPRESSÃO */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          #area-print, #area-print * { visibility: visible; }
-          #area-print { position: absolute; left: 0; top: 0; width: 100%; background: #fff; padding: 20px; }
-          .no-print { display: none !important; }
-        }
-      `}</style>
-
-      {/* BARRA SUPERIOR MOBILE */}
-      <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-40 shadow-md no-print">
-        <div className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Fretech Logo" className="w-8 h-8 object-contain rounded-lg" />
-          <span className="font-bold text-sm">Fretech</span>
-        </div>
-        <button onClick={() => setMenuAberto(!menuAberto)} className="p-2 rounded-xl bg-slate-800 text-slate-200">
-          {menuAberto ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-      </div>
-
-      {menuAberto && <div onClick={() => setMenuAberto(false)} className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 md:hidden no-print" />}
-
-      {/* SIDEBAR DE NAVEGAÇÃO DA CONTA */}
-      <aside className={`fixed md:sticky top-0 left-0 h-screen w-72 md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 shadow-2xl md:shadow-none transition-transform duration-300 z-50 no-print ${menuAberto ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+      {/* HEADER DO PAINEL */}
+      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Fretech Logo" className="w-10 h-10 object-contain rounded-xl shrink-0" />
+            <img src="/logo.png" alt="Fretech Logo" className="w-9 h-9 object-contain rounded-xl shadow-md" />
             <div>
-              <h1 className="font-bold text-white text-base">Fretech</h1>
-              <p className="text-[10px] text-blue-400 font-mono truncate max-w-[130px]">{userEmail}</p>
+              <h1 className="font-bold text-base text-white">Painel Fretech</h1>
+              <p className="text-[10px] text-blue-400">Logado como: {sessao?.email || 'Visitante (Teste 24h)'}</p>
             </div>
           </div>
-          <button onClick={() => setMenuAberto(false)} className="md:hidden text-slate-400 p-1">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-          <button onClick={() => navegarPara('gerar-link')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition ${abaAtiva === 'gerar-link' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>
-            <QrCode className="w-5 h-5" /> Novo Link / QR Code
-          </button>
-
-          <button onClick={() => navegarPara('viagens')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition ${abaAtiva === 'viagens' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>
-            <Calendar className="w-5 h-5" /> Viagens & Financeiro
-          </button>
-
-          <button onClick={() => navegarPara('notas')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition ${abaAtiva === 'notas' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>
-            <FileText className="w-5 h-5" /> Notas / Manifesto ANTT
-          </button>
-
-          <button onClick={() => navegarPara('veiculos')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition ${abaAtiva === 'veiculos' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>
-            <Car className="w-5 h-5" /> Veículos / Frota
-          </button>
-
-          <button onClick={() => navegarPara('motoristas')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition ${abaAtiva === 'motoristas' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>
-            <Users className="w-5 h-5" /> Motoristas
-          </button>
-        </nav>
-
-        {/* BOTÃO DE SAIR */}
-        <div className="p-4 border-t border-slate-800">
           <button
             onClick={handleLogout}
-            className="w-full bg-slate-800 hover:bg-red-600/20 hover:text-red-400 text-slate-400 p-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
+            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer"
           >
-            <LogOut className="w-4 h-4" /> Sair da Conta
+            <LogOut className="w-4 h-4" /> Sair
           </button>
         </div>
-      </aside>
+      </header>
 
       {/* CONTEÚDO PRINCIPAL */}
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto w-full min-h-screen">
+      <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
         
-        {/* GERAR LINK / QR CODE */}
-        {abaAtiva === 'gerar-link' && (
-          <div className="max-w-4xl mx-auto space-y-6 no-print">
-            <header className="border-b border-slate-200 pb-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Gerar Link & QR Code de Viagem</h2>
-            </header>
+        {/* CARDS DE RESUMO */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
+            <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl">
+              <Bus className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Viagens Ativas</p>
+              <h3 className="text-xl font-bold text-white">{viagens.length}</h3>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <form onSubmit={handleCriarViagem} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Plus className="w-5 h-5 text-blue-600" /> Nova Viagem
-                </h3>
-                <input type="text" required placeholder="Responsável pela Viagem *" value={novaViagem.nomeResponsavel} onChange={(e) => setNovaViagem({ ...novaViagem, nomeResponsavel: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="text" required placeholder="CPF Responsável *" value={novaViagem.cpfResponsavel} onChange={(e) => setNovaViagem({ ...novaViagem, cpfResponsavel: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
-                  
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="Valor (R$) *" 
-                    value={novaViagem.valor} 
-                    onChange={handleValorChange} 
-                    className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm font-semibold" 
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
+            <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl">
+              <Users className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Passageiros Registrados</p>
+              <h3 className="text-xl font-bold text-white">
+                {viagens.reduce((acc, v) => acc + (localStorage.getItem(`passageiros_${v.id}`) ? JSON.parse(localStorage.getItem(`passageiros_${v.id}`)).length : 0), 0)}
+              </h3>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
+            <div className="p-3 bg-purple-500/10 text-purple-400 rounded-xl">
+              <DollarSign className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Faturamento Estimado</p>
+              <h3 className="text-xl font-bold text-white">
+                R$ {viagens.reduce((acc, v) => {
+                  const pass = localStorage.getItem(`passageiros_${v.id}`) ? JSON.parse(localStorage.getItem(`passageiros_${v.id}`)) : [];
+                  const assentos = pass.filter(p => !p.isCriancaColo).length;
+                  return acc + (assentos * v.valorPassagem);
+                }, 0).toFixed(2)}
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        {/* LISTAGEM DE VIAGENS */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-white">Suas Viagens e Excursões</h2>
+            <button
+              onClick={() => setModalAberto(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 shadow-lg cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Nova Viagem
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {viagens.map((viagem) => (
+              <div key={viagem.id} className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] font-bold px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20">Ativa</span>
+                    <button onClick={() => excluirViagem(viagem.id)} className="text-slate-500 hover:text-red-400 transition cursor-pointer">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <h3 className="font-bold text-base text-white">{viagem.local}</h3>
+                  <p className="text-xs text-slate-400 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Data: {viagem.dataIda}</p>
+                </div>
+
+                <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-slate-500">Capacidade: </span>
+                    <span className="font-bold text-white">{viagem.capacidade} assentos</span>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/cadastro/${viagem.id}`)}
+                    className="bg-slate-800 hover:bg-slate-700 text-blue-400 font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <QrCode className="w-4 h-4" /> Link QR Code
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      {/* MODAL CRIAR VIAGEM */}
+      {modalAberto && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 space-y-4">
+            <h3 className="text-lg font-bold text-white">Criar Nova Viagem</h3>
+            <form onSubmit={handleCriarViagem} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Destino / Nome da Excursão</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Excursão Rio de Janeiro - RJ"
+                  value={novaViagem.local}
+                  onChange={(e) => setNovaViagem({ ...novaViagem, local: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Data da Viagem</label>
+                  <input
+                    type="date"
+                    required
+                    value={novaViagem.dataIda}
+                    onChange={(e) => setNovaViagem({ ...novaViagem, dataIda: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-blue-500"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <select required value={novaViagem.motoristaId} onChange={(e) => setNovaViagem({ ...novaViagem, motoristaId: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm">
-                    <option value="">Motorista...</option>
-                    {motoristas.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                  </select>
-                  <select required value={novaViagem.veiculoId} onChange={(e) => setNovaViagem({ ...novaViagem, veiculoId: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm">
-                    <option value="">Veículo...</option>
-                    {veiculos.map(v => <option key={v.id} value={v.id}>{v.marca} {v.modelo}</option>)}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="date" required value={novaViagem.dataIda} onChange={(e) => setNovaViagem({ ...novaViagem, dataIda: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
-                  <input type="date" required value={novaViagem.dataVolta} onChange={(e) => setNovaViagem({ ...novaViagem, dataVolta: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
-                </div>
-                <input type="text" required placeholder="Destino / Local *" value={novaViagem.local} onChange={(e) => setNovaViagem({ ...novaViagem, local: e.target.value })} className="w-full bg-slate-50 border p-2.5 rounded-xl text-sm" />
-                <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm">Gerar Viagem e QR Code</button>
-              </form>
-
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col items-center justify-center text-center">
-                {qrCodeGerado ? (
-                  <div className="space-y-4 w-full max-w-xs">
-                    <img src={qrCodeGerado.qrImageUrl} alt="QR Code" className="w-48 h-48 mx-auto" />
-                    <button onClick={() => handleCopiarLink(qrCodeGerado.url)} className="w-full bg-slate-900 text-white text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-2">
-                      {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                      {copiado ? 'Copiado!' : 'Copiar Link'}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-slate-400 py-8">Nenhum QR Code gerado ainda</div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* VIAGENS & FINANCEIRO */}
-        {abaAtiva === 'viagens' && (
-          <div className="space-y-6">
-            <header className="border-b border-slate-200 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Relatórios Financeiros & Agenda</h2>
-              </div>
-              <div className="flex items-center gap-3">
-                <input type="month" value={mesRelatorio} onChange={(e) => setMesRelatorio(e.target.value)} className="bg-white border rounded-xl px-3 py-2 text-sm font-bold" />
-                <button onClick={handleImprimir} className="bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm">
-                  <Printer className="w-4 h-4 inline mr-1" /> Imprimir Mês
-                </button>
-              </div>
-            </header>
-
-            <div id="area-print" className="bg-white p-4 sm:p-8 rounded-2xl border border-slate-200 space-y-6">
-              <div className="border-b pb-4 flex justify-between items-start">
                 <div>
-                  <h1 className="text-base sm:text-xl font-bold text-slate-900 uppercase">Relatório Financeiro Mensal de Viagens</h1>
-                  <p className="text-xs text-slate-500">Período de Referência: <strong>{mesRelatorio}</strong></p>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Capacidade (Assentos)</label>
+                  <input
+                    type="number"
+                    value={novaViagem.capacidade}
+                    onChange={(e) => setNovaViagem({ ...novaViagem, capacidade: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-blue-500"
+                  />
                 </div>
               </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse min-w-[600px]">
-                  <thead>
-                    <tr className="bg-slate-100 border-b text-slate-700 uppercase font-bold">
-                      <th className="p-3">Destino / Viagem</th>
-                      <th className="p-3">Período</th>
-                      <th className="p-3">Contratante</th>
-                      <th className="p-3">Motorista</th>
-                      <th className="p-3">Veículo</th>
-                      <th className="p-3 text-right">Valor (R$)</th>
-                      <th className="p-3 text-center no-print">Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {viagensDoMes.length > 0 ? (
-                      viagensDoMes.map((v) => (
-                        <tr key={v.id} className="hover:bg-slate-50 transition">
-                          <td className="p-3 font-bold text-slate-900">{v.local}</td>
-                          <td className="p-3 text-slate-600">{formatarDataBR(v.dataIda)} até {formatarDataBR(v.dataVolta)}</td>
-                          <td className="p-3 text-slate-800 font-medium">{v.nomeResponsavel}</td>
-                          <td className="p-3 text-slate-800">{v.motoristaNome}</td>
-                          <td className="p-3 text-slate-600">{v.veiculoModelo}</td>
-                          <td className="p-3 text-right font-bold text-slate-900">R$ {v.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                          <td className="p-3 text-center no-print">
-                            <button onClick={() => handleExcluirViagem(v.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr><td colSpan="7" className="p-6 text-center text-slate-400">Nenhuma viagem cadastrada no mês {mesRelatorio}.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="border-t-2 border-slate-900 pt-4 flex justify-between items-center bg-slate-50 p-4 rounded-xl">
-                <span className="text-xs font-semibold text-slate-500 uppercase">Faturamento Total do Mês</span>
-                <p className="text-2xl font-black text-emerald-700">R$ {valorTotalDoMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* NOTAS / MANIFESTO ANTT */}
-        {abaAtiva === 'notas' && (
-          <div className="space-y-6">
-            <header className="border-b border-slate-200 pb-4 flex justify-between items-center no-print">
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Notas & Manifestos de Viagem (ANTT / DER)</h2>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Valor da Passagem (R$)</label>
+                <input
+                  type="number"
+                  value={novaViagem.valorPassagem}
+                  onChange={(e) => setNovaViagem({ ...novaViagem, valorPassagem: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-blue-500"
+                />
               </div>
-              {viagemSelecionadaNota && (
-                <button onClick={handleImprimir} className="bg-blue-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm">
-                  <Printer className="w-4 h-4 inline mr-1" /> Imprimir Manifesto
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setModalAberto(false)}
+                  className="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs transition cursor-pointer"
+                >
+                  Cancelar
                 </button>
-              )}
-            </header>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 no-print space-y-2">
-              <label className="block text-xs font-bold text-slate-700">Escolha a Viagem para Emitir a Nota:</label>
-              <select
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-semibold"
-                value={viagemSelecionadaNota ? viagemSelecionadaNota.id : ''}
-                onChange={(e) => setViagemSelecionadaNota(viagens.find(v => v.id === e.target.value) || null)}
-              >
-                <option value="">Selecione uma viagem...</option>
-                {viagens.map(v => (
-                  <option key={v.id} value={v.id}>{v.local} ({formatarDataBR(v.dataIda)} até {formatarDataBR(v.dataVolta)}) - Contratante: {v.nomeResponsavel}</option>
-                ))}
-              </select>
-            </div>
-
-            {viagemSelecionadaNota ? (
-              <div id="area-print" className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-300 space-y-6">
-                <div className="border-b-2 border-slate-900 pb-4 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <img src="/logo.png" alt="Fretech Logo" className="w-12 h-12 object-contain" />
-                    <div>
-                      <h1 className="text-lg font-black uppercase">FRETECH - MANIFESTO DE PASSAGEIROS</h1>
-                      <p className="text-xs font-bold uppercase text-slate-600">Documento de Porte Obrigatório ANTT / DER</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <div>
-                    <p><strong>CONTRATANTE:</strong> {viagemSelecionadaNota.nomeResponsavel}</p>
-                    <p><strong>CPF CONTRATANTE:</strong> {viagemSelecionadaNota.cpfResponsavel}</p>
-                    <p><strong>DESTINO:</strong> {viagemSelecionadaNota.local}</p>
-                    <p><strong>PERÍODO:</strong> {formatarDataBR(viagemSelecionadaNota.dataIda)} até {formatarDataBR(viagemSelecionadaNota.dataVolta)}</p>
-                  </div>
-                  <div>
-                    <p><strong>MOTORISTA:</strong> {viagemSelecionadaNota.motoristaNome}</p>
-                    <p><strong>VEÍCULO:</strong> {viagemSelecionadaNota.veiculoModelo}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-xs font-bold uppercase">Relação Oficial de Passageiros Cadastrados:</h3>
-                  <table className="w-full text-left text-xs border-collapse border border-slate-300">
-                    <thead>
-                      <tr className="bg-slate-100 border-b border-slate-300 font-bold">
-                        <th className="p-2 border-r w-16 text-center">Pol.</th>
-                        <th className="p-2 border-r">Nome Completo</th>
-                        <th className="p-2 border-r">CPF</th>
-                        <th className="p-2">RG / Doc Identidade</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getPassageirosViagem(viagemSelecionadaNota.id).length > 0 ? (
-                        getPassageirosViagem(viagemSelecionadaNota.id).map((p, idx) => (
-                          <tr key={p.id || idx} className="border-b">
-                            <td className="p-2 border-r text-center font-bold">
-                              {p.isCriancaColo ? 'COLO' : (p.poltrona || idx + 1)}
-                            </td>
-                            <td className="p-2 border-r font-semibold">
-                              {p.nome} {p.isCriancaColo && <span className="text-[10px] text-blue-600 font-normal">(Criança de Colo)</span>}
-                            </td>
-                            <td className="p-2 border-r font-mono">{p.cpf}</td>
-                            <td className="p-2 font-mono uppercase">{p.rg || '-'}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr><td colSpan="4" className="p-4 text-center text-slate-400">Nenhum passageiro cadastrado ainda.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="pt-8 grid grid-cols-2 gap-8 text-center text-xs">
-                  <div className="border-t border-slate-400 pt-1">Assinatura do Responsável</div>
-                  <div className="border-t border-slate-400 pt-1">Assinatura do Motorista</div>
-                </div>
+                <button
+                  type="submit"
+                  className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition cursor-pointer"
+                >
+                  Salvar Viagem
+                </button>
               </div>
-            ) : (
-              <div className="bg-white p-12 text-center rounded-2xl border text-slate-400 text-sm">Selecione uma viagem na caixa acima para ver a nota.</div>
-            )}
+            </form>
           </div>
-        )}
-
-        {/* VEÍCULOS */}
-        {abaAtiva === 'veiculos' && (
-          <div className="space-y-6 no-print">
-            <header className="border-b border-slate-200 pb-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Gestão de Veículos</h2>
-            </header>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <form onSubmit={handleAddVeiculo} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 h-fit">
-                <h3 className="font-bold text-slate-900 text-base">Cadastrar Veículo</h3>
-                <input type="text" required placeholder="Placa *" value={novoVeiculo.placa} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, placa: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm uppercase font-mono" />
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="text" required placeholder="Marca *" value={novoVeiculo.marca} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, marca: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                  <input type="text" required placeholder="Modelo *" value={novoVeiculo.modelo} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, modelo: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="number" required placeholder="Ano *" value={novoVeiculo.ano} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, ano: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                  <input type="number" required placeholder="Capacidade Total *" value={novoVeiculo.capacidade} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, capacidade: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                </div>
-                <button type="submit" className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm">Salvar Veículo</button>
-              </form>
-
-              <div className="lg:col-span-2 space-y-4">
-                {veiculos.map((v) => (
-                  <div key={v.id} className="bg-white p-4 rounded-2xl border border-slate-200 flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-slate-900">{v.marca} {v.modelo}</h4>
-                      <p className="text-xs text-slate-500">Placa: {v.placa} | Ano: {v.ano} | {v.capacidade} lugares</p>
-                    </div>
-                    <button onClick={() => handleExcluirVeiculo(v.id)} className="p-2 bg-red-50 text-red-600 rounded-xl">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MOTORISTAS */}
-        {abaAtiva === 'motoristas' && (
-          <div className="space-y-6 no-print">
-            <header className="border-b border-slate-200 pb-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Gestão de Motoristas</h2>
-            </header>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <form onSubmit={handleAddMotorista} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 h-fit">
-                <h3 className="font-bold text-slate-900 text-base">Novo Motorista</h3>
-                <input type="text" required placeholder="Nome Completo *" value={novoMotorista.nome} onChange={(e) => setNovoMotorista({ ...novoMotorista, nome: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                <input type="text" required placeholder="CPF *" value={novoMotorista.cpf} onChange={(e) => setNovoMotorista({ ...novoMotorista, cpf: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                <input type="text" required placeholder="CNH *" value={novoMotorista.cnh} onChange={(e) => setNovoMotorista({ ...novoMotorista, cnh: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                <input type="text" required placeholder="Endereço *" value={novoMotorista.endereco} onChange={(e) => setNovoMotorista({ ...novoMotorista, endereco: e.target.value })} className="w-full bg-slate-50 border p-2 rounded-xl text-sm" />
-                <button type="submit" className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm">Salvar Motorista</button>
-              </form>
-
-              <div className="lg:col-span-2 space-y-4">
-                {motoristas.map(m => (
-                  <div key={m.id} className="bg-white p-4 rounded-2xl border border-slate-200 flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-slate-900">{m.nome}</h4>
-                      <p className="text-xs text-slate-500">CPF: {m.cpf} | CNH: {m.cnh}</p>
-                    </div>
-                    <button onClick={() => handleExcluirMotorista(m.id)} className="p-2 bg-red-50 text-red-600 rounded-xl">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-      </main>
+        </div>
+      )}
     </div>
   );
 }

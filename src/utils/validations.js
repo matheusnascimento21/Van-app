@@ -1,28 +1,18 @@
-// src/utils/validations.js
+// src/utils/storage.js
 
-export function validarCPF(cpf) {
-  const limpo = cpf.replace(/\D/g, '');
-
-  if (limpo.length !== 11) return false;
-  if (/^(\d)\1{10}$/.test(limpo)) return false; // Bloqueia CPFs repetidos tipo '111.111.111-11'
-
-  let soma = 0;
-  let resto;
-
-  for (let i = 1; i <= 9; i++) {
-    soma += parseInt(limpo.substring(i - 1, i)) * (11 - i);
+export function obterSessaoAtiva() {
+  const sessaoSalva = localStorage.getItem('fretech_sessao') || localStorage.getItem('expresstour_sessao');
+  if (!sessaoSalva) return null;
+  try {
+    return JSON.parse(sessaoSalva);
+  } catch (e) {
+    return null;
   }
-  resto = (soma * 10) % 11;
-  if (resto === 10 || resto === 11) resto = 0;
-  if (resto !== parseInt(limpo.substring(9, 10))) return false;
+}
 
-  soma = 0;
-  for (let i = 1; i <= 10; i++) {
-    soma += parseInt(limpo.substring(i - 1, i)) * (12 - i);
-  }
-  resto = (soma * 10) % 11;
-  if (resto === 10 || resto === 11) resto = 0;
-  if (resto !== parseInt(limpo.substring(10, 11))) return false;
-
-  return true;
+// Retorna uma chave única para o usuário atual (ex: "viagens_visitante@fretech.com")
+export function obterChaveIsolada(prefixo) {
+  const sessao = obterSessaoAtiva();
+  const identificador = sessao?.email || sessao?.id || 'padrao';
+  return `${prefixo}_${identificador}`;
 }
