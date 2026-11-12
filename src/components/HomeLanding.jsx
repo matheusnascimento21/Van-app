@@ -5,7 +5,9 @@ import { Check, QrCode, FileText, Shield, ArrowRight, Sparkles } from 'lucide-re
 export default function LandingPage() {
   const navigate = useNavigate();
 
-  const handleAssinarPlano = (plano) => {
+  const handleAssinarPlano = (plano, e) => {
+    if (e) e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     navigate(`/checkout?plano=${plano}`);
   };
 
@@ -86,14 +88,15 @@ export default function LandingPage() {
               </ul>
             </div>
             <button
-              onClick={() => handleAssinarPlano('iniciante')}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs transition"
+              type="button"
+              onClick={(e) => handleAssinarPlano('iniciante', e)}
+              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs transition cursor-pointer"
             >
               Assinar Plano Iniciante
             </button>
           </div>
 
-          {/* 2. PLANO INTERMEDIÁRIO (NOVO) */}
+          {/* 2. PLANO INTERMEDIÁRIO */}
           <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 flex flex-col justify-between space-y-6">
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-white">Intermediário</h3>
@@ -107,8 +110,9 @@ export default function LandingPage() {
               </ul>
             </div>
             <button
-              onClick={() => handleAssinarPlano('intermediario')}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs transition"
+              type="button"
+              onClick={(e) => handleAssinarPlano('intermediario', e)}
+              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs transition cursor-pointer"
             >
               Assinar Plano Intermediário
             </button>
@@ -131,8 +135,9 @@ export default function LandingPage() {
               </ul>
             </div>
             <button
-              onClick={() => handleAssinarPlano('profissional')}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg"
+              type="button"
+              onClick={(e) => handleAssinarPlano('profissional', e)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg cursor-pointer"
             >
               Assinar Plano Profissional
             </button>

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle2, AlertCircle, Bus, User, CreditCard, ShieldCheck, Baby, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Bus, User, CreditCard, ShieldCheck, Baby } from 'lucide-react';
 
-// Função para Validação Matemática de CPF (Módulo 11)
+// Função para Validação Matemática de CPF (Módulo 11) - Exatamente 11 números
 function validarCPFMatematico(cpf) {
   const c = cpf.replace(/\D/g, '');
   if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
@@ -28,7 +28,7 @@ export default function CadastroPassageiro() {
   const [viagem] = useState(() => {
     const salva = localStorage.getItem(`viagem_${viagemId}`);
     return salva ? JSON.parse(salva) : {
-      local: 'Excursão Cabo Frio - RJ',
+      local: 'Excursão Fretamento - Fretech',
       dataIda: '2026-09-25',
       dataVolta: '2026-09-27',
       capacidadeTotal: 18,
@@ -52,7 +52,6 @@ export default function CadastroPassageiro() {
     isCriancaColo: false
   });
 
-  const [validandoApi, setValidandoApi] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -81,6 +80,7 @@ export default function CadastroPassageiro() {
     setForm({ ...form, dataNascimento: dataNasc, idade: idadeCalculada });
   };
 
+  // Garante que só entram números e limita a 11 dígitos
   const handleCpfChange = (e) => {
     const apenasNumeros = e.target.value.replace(/\D/g, '').slice(0, 11);
     setForm({ ...form, cpf: apenasNumeros });
@@ -93,11 +93,10 @@ export default function CadastroPassageiro() {
     setForm({ ...form, rg: letras + numeros });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setErro('');
 
-    // Validações básicas
     if (!form.isCriancaColo && estaLotadoSemColo) {
       setErro(`Os assentos desta viagem estão lotados (${limitePassageiros} passageiros).`);
       return;
@@ -118,50 +117,18 @@ export default function CadastroPassageiro() {
       return;
     }
 
-    // 1. Validação Matemática do CPF (OBRIGATÓRIO)
+    // Validação estrita: exatamente 11 números e validação matemática de CPF
     if (form.cpf.length !== 11 || !validarCPFMatematico(form.cpf)) {
-      setErro('O número de CPF informado é inválido. Verifique se digitou os 11 números corretamente.');
+      setErro('CPF inválido. O CPF deve conter exatamente 11 números válidos.');
       return;
     }
 
-    // O RG NÃO É MAIS OBRIGATÓRIO, MAS SE DIGITADO VALIDA O FORMATO BÁSICO
     if (form.rg.trim() !== '') {
       const rgNumeros = form.rg.slice(2);
       if (form.rg.length < 3 || rgNumeros.length === 0) {
-        setErro('Se for informar o RG, ele deve conter as 2 letras da UF seguidas dos números.');
+        setErro('Se for informar o RG, informe o formato correto.');
         return;
       }
-    }
-
-    // 2. Validação via API do Hub do Desenvolvedor (Receita Federal)
-    setValidandoApi(true);
-    try {
-      const [ano, mes, dia] = form.dataNascimento.split('-');
-      const dataFormatadaPT = `${dia}/${mes}/${ano}`;
-      const token = '218247910uYaOfKScNs394039984';
-
-      const urlApi = `https://ws.hubdodesenvolvedor.com.br/v2/cpf/?cpf=${form.cpf}&data=${dataFormatadaPT}&token=${token}`;
-
-      const res = await fetch(urlApi);
-      const data = await res.json();
-
-      if (data && data.status === false) {
-        setErro(data.erro || 'CPF não encontrado ou data de nascimento divergente na Receita Federal.');
-        setValidandoApi(false);
-        return;
-      }
-
-      if (data && data.result) {
-        if (data.result.status && data.result.status.toLowerCase().includes('cancelada')) {
-          setErro('Este CPF está suspenso ou cancelado junto à Receita Federal.');
-          setValidandoApi(false);
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn('Falha na API externa de consulta de CPF, prosseguindo com a validação nativa:', err);
-    } finally {
-      setValidandoApi(false);
     }
 
     const assentoDesignado = form.isCriancaColo ? 'Colo' : passageirosAssento.length + 1;
@@ -188,10 +155,11 @@ export default function CadastroPassageiro() {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-800">
         
-        <div className="bg-blue-600 p-6 text-white text-center">
-          <Bus className="w-10 h-10 mx-auto mb-2 opacity-90" />
+        {/* CABEÇALHO COM LOGO FRETECH */}
+        <div className="bg-blue-600 p-6 text-white text-center space-y-1">
+          <img src="/logo.png" alt="Fretech Logo" className="w-10 h-10 object-contain mx-auto mb-1 rounded-xl" />
           <h1 className="text-xl font-bold leading-tight">Lista de Embarque Oficial</h1>
-          <p className="text-xs text-blue-100 mt-1">{viagem.local}</p>
+          <p className="text-xs text-blue-100">{viagem.local}</p>
         </div>
 
         {/* STATUS DAS VAGAS */}
@@ -210,11 +178,11 @@ export default function CadastroPassageiro() {
           <div className="p-8 text-center space-y-4">
             <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto" />
             <h2 className="text-xl font-bold text-slate-900">Cadastro Confirmado!</h2>
-            <p className="text-xs text-slate-500">Seu CPF foi validado e seu nome já consta na lista oficial da viagem.</p>
+            <p className="text-xs text-slate-500">Seu nome já consta na lista oficial da viagem com sucesso.</p>
             
             <button
               onClick={() => { setSucesso(false); setForm({ nome: '', dataNascimento: '', idade: '', cpf: '', rg: '', isCriancaColo: false }); }}
-              className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-xs"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs transition"
             >
               Cadastrar Outro Passageiro
             </button>
@@ -285,7 +253,7 @@ export default function CadastroPassageiro() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">CPF (Validado na Receita Federal) *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">CPF (Apenas os 11 números) *</label>
               <div className="relative">
                 <CreditCard className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
@@ -298,6 +266,7 @@ export default function CadastroPassageiro() {
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <p className="text-[10px] text-slate-400 mt-1">Digite somente os 11 dígitos numéricos, sem pontos ou traços.</p>
             </div>
 
             <div>
@@ -316,17 +285,9 @@ export default function CadastroPassageiro() {
 
             <button
               type="submit"
-              disabled={validandoApi}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 transition"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 transition cursor-pointer"
             >
-              {validandoApi ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Consultando Receita Federal...
-                </>
-              ) : (
-                'Confirmar Presença na Viagem'
-              )}
+              Confirmar Presença na Viagem
             </button>
           </form>
         )}
