@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle2, AlertCircle, Bus, User, CreditCard, ShieldCheck, Baby } from 'lucide-react';
+import { CheckCircle2, AlertCircle, User, CreditCard, ShieldCheck, Baby } from 'lucide-react';
 
 // Função para Validação Matemática de CPF (Módulo 11) - Exatamente 11 números
 function validarCPFMatematico(cpf) {
@@ -80,7 +80,6 @@ export default function CadastroPassageiro() {
     setForm({ ...form, dataNascimento: dataNasc, idade: idadeCalculada });
   };
 
-  // Garante estritamente que só entram números e limita a 11 dígitos
   const handleCpfChange = (e) => {
     const apenasNumeros = e.target.value.replace(/\D/g, '').slice(0, 11);
     setForm({ ...form, cpf: apenasNumeros });
@@ -121,14 +120,6 @@ export default function CadastroPassageiro() {
     if (form.cpf.length !== 11 || !validarCPFMatematico(form.cpf)) {
       setErro('CPF inválido. O CPF deve conter exatamente 11 números válidos.');
       return;
-    }
-
-    if (form.rg.trim() !== '') {
-      const rgNumeros = form.rg.slice(2);
-      if (form.rg.length < 3 || rgNumeros.length === 0) {
-        setErro('Se for informar o RG, informe o formato correto.');
-        return;
-      }
     }
 
     const assentoDesignado = form.isCriancaColo ? 'Colo' : passageirosAssento.length + 1;
@@ -182,7 +173,7 @@ export default function CadastroPassageiro() {
             
             <button
               onClick={() => { setSucesso(false); setForm({ nome: '', dataNascimento: '', idade: '', cpf: '', rg: '', isCriancaColo: false }); }}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs transition"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs transition cursor-pointer"
             >
               Cadastrar Outro Passageiro
             </button>
@@ -235,7 +226,6 @@ export default function CadastroPassageiro() {
               </div>
             </div>
 
-            {/* CHECKBOX CRIANÇA DE COLO */}
             <div className="bg-blue-50/60 p-3 rounded-xl border border-blue-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Baby className="w-4 h-4 text-blue-600" />
