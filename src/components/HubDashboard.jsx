@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bus, Users, DollarSign, Plus, LogOut, QrCode, Calendar, Trash2, UserCheck, Shield, FileText, Printer } from 'lucide-react';
+import { Bus, Users, DollarSign, Plus, LogOut, QrCode, Calendar, Trash2, UserCheck, Shield, FileText, Printer, Lock } from 'lucide-react';
 
 function obterSessaoAtiva() {
   const sessaoSalva = localStorage.getItem('fretech_sessao') || localStorage.getItem('expresstour_sessao');
@@ -21,6 +21,9 @@ function obterChaveIsolada(prefixo) {
 export default function HubDashboard() {
   const navigate = useNavigate();
   const sessao = obterSessaoAtiva();
+
+  // Descobre o plano atual do usuário (se veio do checkout ou é teste grátis 24h)
+  const planoAtual = sessao?.plano || (sessao?.tipo === 'teste_gratuito' ? 'profissional' : 'iniciante');
 
   const [abaAtiva, setAbaAtiva] = useState('viagens');
 
@@ -46,13 +49,12 @@ export default function HubDashboard() {
   const [modalViagemAberto, setModalViagemAberto] = useState(false);
   const [modalMotoristaAberto, setModalMotoristaAberto] = useState(false);
   const [modalVeiculoAberto, setModalVeiculoAberto] = useState(false);
-  
-  // Modal de Manifesto ANTT / DER para impressão
   const [manifestoModalViagem, setManifestoModalViagem] = useState(null);
 
   const [novaViagem, setNovaViagem] = useState({ local: '', dataIda: '', capacidade: 17, valorPassagem: 100, motorista: '', veiculo: '' });
   const [novoMotorista, setNovoMotorista] = useState({ nome: '', cnh: '', telefone: '' });
   const [novoVeiculo, setNovoVeiculo] = useState({ modelo: '', placa: '', lugares: 17 });
+  const [erroPlano, setErroPlano] = useState('');
 
   useEffect(() => {
     localStorage.setItem(chaveViagens, JSON.stringify(viagens));
@@ -74,6 +76,14 @@ export default function HubDashboard() {
 
   const handleCriarViagem = (e) => {
     e.preventDefault();
+    setErroPlano('');
+
+    // REGRA DO PLANO INICIANTE: Máximo de 5 viagens ativas
+    if (planoAtual === 'iniciante' && viagens.length >= 5) {
+      setErroPlano('O Plano Iniciante permite no máximo 5 viagens ativas por mês. Faça upgrade para o Intermediário ou Profissional para viagens ilimitadas!');
+      return;
+    }
+
     if (!novaViagem.local || !novaViagem.dataIda) return;
 
     const viagemObj = {
@@ -93,6 +103,10 @@ export default function HubDashboard() {
 
   const handleCriarMotorista = (e) => {
     e.preventDefault();
+    if (planoAtual === 'iniciante') {
+      alert('O cadastro avançado de motoristas está disponível apenas nos planos Intermediário e Profissional.');
+      return;
+    }
     if (!novoMotorista.nome) return;
     setMotoristas([{ id: Date.now(), ...novoMotorista }, ...motoristas]);
     setNovoMotorista({ nome: '', cnh: '', telefone: '' });
@@ -101,6 +115,10 @@ export default function HubDashboard() {
 
   const handleCriarVeiculo = (e) => {
     e.preventDefault();
+    if (planoAtual === 'iniciante') {
+      alert('O cadastro de frota está disponível apenas nos planos Intermediário e Profissional.');
+      return;
+    }
     if (!novoVeiculo.modelo || !novoVeiculo.placa) return;
     setVeiculos([{ id: Date.now(), ...novoVeiculo }, ...veiculos]);
     setNovoVeiculo({ modelo: '', placa: '', lugares: 17 });
@@ -126,14 +144,16 @@ export default function HubDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
-      {/* HEADER DO PAINEL */}
+      {/* HEADER */}
       <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="Fretech Logo" className="w-9 h-9 object-contain rounded-xl shadow-md" />
             <div>
               <h1 className="font-bold text-base text-white">Painel Fretech</h1>
-              <p className="text-[10px] text-blue-400">Conta: {sessao?.email || 'Visitante (Teste 24h)'}</p>
+              <p className="text-[10px] text-blue-400">
+                Conta: {sessao?.email || 'Visitante'} | <span className="uppercase font-bold text-emerald-400">Plano {planoAtual}</span>
+              </p>
             </div>
           </div>
           <button
@@ -150,10 +170,10 @@ export default function HubDashboard() {
             <Bus className="w-4 h-4" /> Viagens
           </button>
           <button onClick={() => setAbaAtiva('motoristas')} className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${abaAtiva === 'motoristas' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-900'}`}>
-            <UserCheck className="w-4 h-4" /> Motoristas
+            <UserCheck className="w-4 h-4" /> Motoristas {planoAtual === 'iniciante' && <Lock className="w-3 h-3 text-amber-400" />}
           </button>
           <button onClick={() => setAbaAtiva('veiculos')} className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${abaAtiva === 'veiculos' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-900'}`}>
-            <Shield className="w-4 h-4" /> Frota / Veículos
+            <Shield className="w-4 h-4" /> Frota / Veículos {planoAtual === 'iniciante' && <Lock className="w-3 h-3 text-amber-400" />}
           </button>
           <button onClick={() => setAbaAtiva('financeiro')} className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${abaAtiva === 'financeiro' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-900'}`}>
             <DollarSign className="w-4 h-4" /> Financeiro e Relatórios
@@ -164,11 +184,19 @@ export default function HubDashboard() {
       {/* CONTEÚDO */}
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
         
+        {/* AVISO DO PLANO INICIANTE */}
+        {planoAtual === 'iniciante' && (
+          <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl flex items-center justify-between text-xs text-amber-300">
+            <span>⚠️ Você está no <strong>Plano Iniciante</strong> (Até 5 viagens ativas/mês e manifesto digital básico).</span>
+            <button onClick={() => navigate('/#planos')} className="underline font-bold hover:text-white">Fazer Upgrade</button>
+          </div>
+        )}
+
         {/* CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
             <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl"><Bus className="w-6 h-6" /></div>
-            <div><p className="text-xs text-slate-400">Viagens Ativas</p><h3 className="text-xl font-bold text-white">{viagens.length}</h3></div>
+            <div><p className="text-xs text-slate-400">Viagens Ativas</p><h3 className="text-xl font-bold text-white">{viagens.length} {planoAtual === 'iniciante' && '/ 5'}</h3></div>
           </div>
           <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-center gap-4">
             <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl"><Users className="w-6 h-6" /></div>
@@ -206,17 +234,24 @@ export default function HubDashboard() {
                       </div>
                       <h3 className="font-bold text-base text-white">{viagem.local}</h3>
                       <p className="text-xs text-slate-400 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Data: {viagem.dataIda}</p>
-                      <p className="text-xs text-slate-400">Motorista: {viagem.motorista}</p>
-                      <p className="text-xs text-slate-400">Veículo: {viagem.veiculo}</p>
                     </div>
 
                     <div className="space-y-2 pt-3 border-t border-slate-800">
                       <div className="flex justify-between text-xs text-slate-400">
                         <span>Capacidade: <strong className="text-white">{viagem.capacidade}</strong></span>
-                        <button onClick={() => navigate(`/cadastro/${viagem.id}`)} className="text-blue-400 font-bold hover:underline flex items-center gap-1">
-                          <QrCode className="w-3.5 h-3.5" /> QR Code
-                        </button>
+                        
+                        {/* REGRA DE PLANO: Iniciante não tem QR Code (apenas Intermediário e Pro) */}
+                        {planoAtual === 'iniciante' ? (
+                          <span className="text-amber-400 text-[10px] flex items-center gap-1" title="Disponível no Plano Intermediário">
+                            <Lock className="w-3 h-3" /> QR Code Bloqueado
+                          </span>
+                        ) : (
+                          <button onClick={() => navigate(`/cadastro/${viagem.id}`)} className="text-blue-400 font-bold hover:underline flex items-center gap-1">
+                            <QrCode className="w-3.5 h-3.5" /> QR Code
+                          </button>
+                        )}
                       </div>
+
                       <button
                         onClick={() => setManifestoModalViagem(viagem)}
                         className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
@@ -236,11 +271,22 @@ export default function HubDashboard() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Motoristas Cadastrados</h2>
-              <button onClick={() => setModalMotoristaAberto(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 cursor-pointer">
-                <Plus className="w-4 h-4" /> Cadastrar Motorista
-              </button>
+              {planoAtual !== 'iniciante' ? (
+                <button onClick={() => setModalMotoristaAberto(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 cursor-pointer">
+                  <Plus className="w-4 h-4" /> Cadastrar Motorista
+                </button>
+              ) : (
+                <span className="text-xs text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">Recurso exclusivo dos planos Intermediário e Profissional</span>
+              )}
             </div>
-            {motoristas.length === 0 ? (
+
+            {planoAtual === 'iniciante' ? (
+              <div className="bg-slate-900/50 border border-slate-800 p-12 rounded-3xl text-center space-y-3">
+                <Lock className="w-12 h-12 text-amber-500 mx-auto" />
+                <p className="text-sm font-bold text-slate-300">O cadastro de motoristas não está disponível no Plano Iniciante.</p>
+                <button onClick={() => navigate('/#planos')} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">Fazer Upgrade</button>
+              </div>
+            ) : motoristas.length === 0 ? (
               <div className="bg-slate-900/50 border border-slate-800 p-12 rounded-3xl text-center"><p className="text-xs text-slate-500">Nenhum motorista cadastrado.</p></div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -261,11 +307,22 @@ export default function HubDashboard() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Frota / Veículos Cadastrados</h2>
-              <button onClick={() => setModalVeiculoAberto(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 cursor-pointer">
-                <Plus className="w-4 h-4" /> Cadastrar Veículo
-              </button>
+              {planoAtual !== 'iniciante' ? (
+                <button onClick={() => setModalVeiculoAberto(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 cursor-pointer">
+                  <Plus className="w-4 h-4" /> Cadastrar Veículo
+                </button>
+              ) : (
+                <span className="text-xs text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">Recurso exclusivo dos planos Intermediário e Profissional</span>
+              )}
             </div>
-            {veiculos.length === 0 ? (
+
+            {planoAtual === 'iniciante' ? (
+              <div className="bg-slate-900/50 border border-slate-800 p-12 rounded-3xl text-center space-y-3">
+                <Lock className="w-12 h-12 text-amber-500 mx-auto" />
+                <p className="text-sm font-bold text-slate-300">O cadastro de frota não está disponível no Plano Iniciante.</p>
+                <button onClick={() => navigate('/#planos')} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">Fazer Upgrade</button>
+              </div>
+            ) : veiculos.length === 0 ? (
               <div className="bg-slate-900/50 border border-slate-800 p-12 rounded-3xl text-center"><p className="text-xs text-slate-500">Nenhum veículo cadastrado.</p></div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -281,7 +338,7 @@ export default function HubDashboard() {
           </div>
         )}
 
-        {/* ABA FINANCEIRO E RELATÓRIO MENSAL */}
+        {/* ABA FINANCEIRO */}
         {abaAtiva === 'financeiro' && (
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -289,10 +346,7 @@ export default function HubDashboard() {
                 <h2 className="text-lg font-bold text-white">Relatório Financeiro e Fechamento</h2>
                 <p className="text-xs text-slate-400">Acompanhe o faturamento mensal e imprima o balanço para controle.</p>
               </div>
-              <button
-                onClick={() => window.print()}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 cursor-pointer shadow-lg"
-              >
+              <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2 cursor-pointer shadow-lg">
                 <Printer className="w-4 h-4" /> Imprimir Relatório Financeiro
               </button>
             </div>
@@ -307,34 +361,11 @@ export default function HubDashboard() {
                 <h3 className="text-2xl font-black text-blue-400">{viagens.length} viagens</h3>
               </div>
             </div>
-
-            <div className="space-y-3 pt-4">
-              <h3 className="text-sm font-bold text-white">Detalhamento por Viagem</h3>
-              <div className="space-y-2">
-                {viagens.map(v => {
-                  const pass = localStorage.getItem(`passageiros_${v.id}`) ? JSON.parse(localStorage.getItem(`passageiros_${v.id}`)) : [];
-                  const assentosOcupados = pass.filter(p => !p.isCriancaColo).length;
-                  const faturamentoViagem = assentosOcupados * v.valorPassagem;
-                  return (
-                    <div key={v.id} className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                      <div>
-                        <p className="font-bold text-white text-sm">{v.local}</p>
-                        <p className="text-slate-400">Data: {v.dataIda} | Passageiros: {pass.length} ({assentosOcupados} assentos)</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-emerald-400 text-sm">R$ {faturamentoViagem.toFixed(2)}</p>
-                        <p className="text-slate-500">R$ {v.valorPassagem} / assento</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         )}
       </main>
 
-      {/* MODAL: MANIFESTO ANTT / DER PARA IMPRESSÃO */}
+      {/* MODAL: MANIFESTO ANTT / DER */}
       {manifestoModalViagem && (() => {
         const passageirosViagem = localStorage.getItem(`passageiros_${manifestoModalViagem.id}`) 
           ? JSON.parse(localStorage.getItem(`passageiros_${manifestoModalViagem.id}`)) 
@@ -344,88 +375,51 @@ export default function HubDashboard() {
         return (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
             <div className="bg-white text-slate-900 w-full max-w-3xl rounded-3xl p-8 space-y-6 shadow-2xl relative my-8 print:m-0 print:shadow-none print:w-full">
-              
-              {/* CABEÇALHO DO MANIFESTO PARA FISCALIZAÇÃO */}
               <div className="text-center border-b pb-4 space-y-1">
                 <h1 className="text-xl font-bold uppercase tracking-wide">Manifesto de Passageiros - Fretamento</h1>
                 <p className="text-xs text-slate-600">Documento de Porte Obrigatório (Padrão ANTT / DER)</p>
               </div>
-
-              {/* DADOS DA VIAGEM */}
               <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <div>
-                  <p><strong>Destino / Excursão:</strong> {manifestoModalViagem.local}</p>
-                  <p><strong>Data da Viagem:</strong> {manifestoModalViagem.dataIda}</p>
-                  <p><strong>Veículo / Placa:</strong> {manifestoModalViagem.veiculo}</p>
+                  <p><strong>Destino:</strong> {manifestoModalViagem.local}</p>
+                  <p><strong>Data:</strong> {manifestoModalViagem.dataIda}</p>
                 </div>
                 <div>
-                  <p><strong>Motorista:</strong> {manifestoModalViagem.motorista}</p>
-                  <p><strong>Total de Passageiros:</strong> {assentosOcupados} / {manifestoModalViagem.capacidade}</p>
-                  <p><strong>Crianças de Colo:</strong> {passageirosViagem.filter(p => p.isCriancaColo).length}</p>
+                  <p><strong>Passageiros:</strong> {assentosOcupados} / {manifestoModalViagem.capacidade}</p>
                 </div>
               </div>
-
-              {/* TABELA DE PASSAGEIROS */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-bold uppercase text-slate-700">Relação Oficial de Embarque</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b-2 border-slate-300 bg-slate-100">
-                        <th className="p-2">Poltrona</th>
-                        <th className="p-2">Nome Completo</th>
-                        <th className="p-2">CPF</th>
-                        <th className="p-2">RG</th>
-                        <th className="p-2">Nascimento</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {passageirosViagem.length === 0 ? (
-                        <tr>
-                          <td colSpan="5" className="p-4 text-center text-slate-500 italic">Nenhum passageiro cadastrado nesta viagem ainda.</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-slate-300 bg-slate-100">
+                      <th className="p-2">Poltrona</th>
+                      <th className="p-2">Nome Completo</th>
+                      <th className="p-2">CPF</th>
+                      <th className="p-2">RG</th>
+                      <th className="p-2">Nascimento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {passageirosViagem.length === 0 ? (
+                      <tr><td colSpan="5" className="p-4 text-center text-slate-500 italic">Nenhum passageiro cadastrado.</td></tr>
+                    ) : (
+                      passageirosViagem.map((p, idx) => (
+                        <tr key={idx} className="border-b border-slate-200">
+                          <td className="p-2 font-bold">{p.poltrona}</td>
+                          <td className="p-2 font-medium">{p.nome}</td>
+                          <td className="p-2 font-mono">{p.cpf}</td>
+                          <td className="p-2">{p.rg}</td>
+                          <td className="p-2">{p.dataNascimento}</td>
                         </tr>
-                      ) : (
-                        passageirosViagem.map((p, idx) => (
-                          <tr key={idx} className="border-b border-slate-200">
-                            <td className="p-2 font-bold">{p.poltrona}</td>
-                            <td className="p-2 font-medium">{p.nome}</td>
-                            <td className="p-2 font-mono">{p.cpf}</td>
-                            <td className="p-2">{p.rg}</td>
-                            <td className="p-2">{p.dataNascimento}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
-
-              {/* ASSINATURA */}
-              <div className="pt-12 grid grid-cols-2 gap-8 text-center text-xs">
-                <div className="border-t border-slate-400 pt-2">
-                  <p>Assinatura da Empresa / Responsável</p>
-                </div>
-                <div className="border-t border-slate-400 pt-2">
-                  <p>Assinatura do Motorista</p>
-                </div>
-              </div>
-
-              {/* BOTÕES DE AÇÃO DO MODAL */}
               <div className="flex gap-3 pt-4 print:hidden">
-                <button
-                  onClick={() => window.print()}
-                  className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-lg"
-                >
-                  <Printer className="w-4 h-4" /> Imprimir / Salvar PDF
-                </button>
-                <button
-                  onClick={() => setManifestoModalViagem(null)}
-                  className="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 rounded-xl text-xs transition cursor-pointer"
-                >
-                  Fechar
-                </button>
+                <button onClick={() => window.print()} className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs cursor-pointer">Imprimir / Salvar PDF</button>
+                <button onClick={() => setManifestoModalViagem(null)} className="w-1/2 bg-slate-200 text-slate-800 font-bold py-3 rounded-xl text-xs cursor-pointer">Fechar</button>
               </div>
-
             </div>
           </div>
         );
@@ -436,6 +430,7 @@ export default function HubDashboard() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 space-y-4">
             <h3 className="text-lg font-bold text-white">Criar Nova Viagem</h3>
+            {erroPlano && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-xs">{erroPlano}</div>}
             <form onSubmit={handleCriarViagem} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-400 mb-1">Destino / Excursão</label>
@@ -455,77 +450,9 @@ export default function HubDashboard() {
                 <label className="block text-xs font-semibold text-slate-400 mb-1">Valor Passagem (R$)</label>
                 <input type="number" value={novaViagem.valorPassagem} onChange={(e) => setNovaViagem({ ...novaViagem, valorPassagem: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none" />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Motorista</label>
-                <select value={novaViagem.motorista} onChange={(e) => setNovaViagem({ ...novaViagem, motorista: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none">
-                  <option value="">Selecione o motorista</option>
-                  {motoristas.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Veículo / Frota</label>
-                <select value={novaViagem.veiculo} onChange={(e) => setNovaViagem({ ...novaViagem, veiculo: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none">
-                  <option value="">Selecione o veículo</option>
-                  {veiculos.map(v => <option key={v.id} value={`${v.modelo} (${v.placa})`}>{v.modelo} - {v.placa}</option>)}
-                </select>
-              </div>
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setModalViagemAberto(false)} className="w-1/2 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs cursor-pointer">Cancelar</button>
-                <button type="submit" className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer">Salvar Viagem</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: NOVO MOTORISTA */}
-      {modalMotoristaAberto && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 space-y-4">
-            <h3 className="text-lg font-bold text-white">Cadastrar Motorista</h3>
-            <form onSubmit={handleCriarMotorista} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Nome</label>
-                <input type="text" required placeholder="Nome completo" value={novoMotorista.nome} onChange={(e) => setNovoMotorista({ ...novoMotorista, nome: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white outline-none" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">CNH</label>
-                <input type="text" placeholder="Número CNH" value={novoMotorista.cnh} onChange={(e) => setNovoMotorista({ ...novoMotorista, cnh: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white outline-none" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Telefone</label>
-                <input type="text" placeholder="Telefone" value={novoMotorista.telefone} onChange={(e) => setNovoMotorista({ ...novoMotorista, telefone: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white outline-none" />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setModalMotoristaAberto(false)} className="w-1/2 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs cursor-pointer">Cancelar</button>
-                <button type="submit" className="w-1/2 bg-blue-600 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer">Salvar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: NOVO VEÍCULO */}
-      {modalVeiculoAberto && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 space-y-4">
-            <h3 className="text-lg font-bold text-white">Cadastrar Veículo</h3>
-            <form onSubmit={handleCriarVeiculo} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Modelo</label>
-                <input type="text" required placeholder="Ex: Sprinter" value={novoVeiculo.modelo} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, modelo: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white outline-none" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Placa</label>
-                <input type="text" required placeholder="ABC-1234" value={novoVeiculo.placa} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, placa: e.target.value.toUpperCase() })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white outline-none" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Lugares</label>
-                <input type="number" value={novoVeiculo.lugares} onChange={(e) => setNovoVeiculo({ ...novoVeiculo, lugares: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white outline-none" />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setModalVeiculoAberto(false)} className="w-1/2 bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs cursor-pointer">Cancelar</button>
-                <button type="submit" className="w-1/2 bg-blue-600 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer">Salvar</button>
+                <button type="submit" className="w-1/2 bg-blue-600 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer">Salvar Viagem</button>
               </div>
             </form>
           </div>
