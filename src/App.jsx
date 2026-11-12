@@ -6,6 +6,7 @@ import AuthLogin from './components/AuthLogin';
 import CheckoutPagamento from './components/CheckoutPagamento';
 import HubDashboard from './components/HubDashboard';
 import CadastroPassageiro from './components/CadastroPassageiro';
+import RotaProtegida from './components/RotaProtegida';
 
 export default function App() {
   return (
@@ -15,13 +16,19 @@ export default function App() {
         <Route path="/login" element={<AuthLogin />} />
         <Route path="/checkout" element={<CheckoutPagamento />} />
         
-        {/* Atende tanto /hub quanto /dashboard para evitar a tela branca */}
-        <Route path="/hub" element={<HubDashboard />} />
-        <Route path="/dashboard" element={<HubDashboard />} />
+        {/* Painel protegido com validade de 24 horas ou login padrão */}
+        <Route path="/hub" element={
+          <RotaProtegida>
+            <HubDashboard />
+          </RotaProtegida>
+        } />
+        <Route path="/dashboard" element={
+          <RotaProtegida>
+            <HubDashboard />
+          </RotaProtegida>
+        } />
         
         <Route path="/cadastro/:viagemId" element={<CadastroPassageiro />} />
-        
-        {/* Qualquer rota errada redireciona para a home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

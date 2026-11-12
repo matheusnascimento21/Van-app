@@ -2,11 +2,25 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 
 export default function RotaProtegida({ children }) {
-  const sessao = localStorage.getItem('expresstour_sessao');
-  const dadosSessao = sessao ? JSON.parse(sessao) : null;
+  const sessaoSalva = localStorage.getItem('fretech_sessao') || localStorage.getItem('expresstour_sessao');
 
-  // Se não fez login com e-mail e senha, redireciona para o Login
-  if (!dadosSessao || !dadosSessao.email) {
+  if (!sessaoSalva) {
+    return <Navigate to="/login" replace />;
+  }
+
+  try {
+    const sessao = JSON.parse(sessaoSalva);
+    
+    // Se tiver tempo deexpiração configurado, valida se já passaram 24 horas
+    if (sessao.expiraEm) {
+      const agora = new Date().getTime();
+      if (agora > sessao.expiraEm) {
+        localStorage.removeItem('fretech_sessao');
+        localStorage.removeItem('expresstour_sessao');
+        return <Navigate to="/login?expirado=true" replace />;
+      }
+    }
+  } catch (e) {
     return <Navigate to="/login" replace />;
   }
 
