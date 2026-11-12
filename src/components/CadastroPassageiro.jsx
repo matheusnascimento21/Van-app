@@ -80,7 +80,7 @@ export default function CadastroPassageiro() {
     setForm({ ...form, dataNascimento: dataNasc, idade: idadeCalculada });
   };
 
-  // Garante que só entram números e limita a 11 dígitos
+  // Garante estritamente que só entram números e limita a 11 dígitos
   const handleCpfChange = (e) => {
     const apenasNumeros = e.target.value.replace(/\D/g, '').slice(0, 11);
     setForm({ ...form, cpf: apenasNumeros });
@@ -294,4 +294,4 @@ export default function CadastroPassageiro() {
       </div>
     </div>
   );
-}
+} 
